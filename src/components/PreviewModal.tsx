@@ -1,5 +1,5 @@
 import React from "react";
-import { BookmarkCheck, BookmarkPlus, Copy, ExternalLink, FolderOpen, X } from "lucide-react";
+import { ArrowRightLeft, BookmarkCheck, BookmarkPlus, Copy, ExternalLink, FolderOpen, X } from "lucide-react";
 import type { MaterialItem, OaEntry } from "../types";
 
 interface PreviewModalProps {
@@ -8,6 +8,7 @@ interface PreviewModalProps {
   isPlanned: boolean;
   onClose: () => void;
   onTogglePlan: (m: MaterialItem) => void;
+  onRelocate: (m: MaterialItem) => void;
   onCopyText: (text: string, label: string) => void;
 }
 
@@ -17,6 +18,7 @@ export default function PreviewModal({
   isPlanned,
   onClose,
   onTogglePlan,
+  onRelocate,
   onCopyText,
 }: PreviewModalProps) {
   if (!material) return null;
@@ -44,7 +46,19 @@ export default function PreviewModal({
             </h2>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => {
+                const m = material;
+                onClose();
+                onRelocate(m);
+              }}
+              title="Marcar que no corresponde aquí o reubicar en otra carpeta"
+            >
+              <ArrowRightLeft size={13} /> No corresponde / Reubicar
+            </button>
             <button
               type="button"
               className={`btn btn-sm ${isPlanned ? "btn-ok" : "btn-primary"}`}

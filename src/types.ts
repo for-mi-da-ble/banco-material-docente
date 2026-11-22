@@ -84,7 +84,72 @@ export interface LessonPlanState {
   items: PlannedResource[];
 }
 
+export type RelocationAction = "reubicar" | "eliminar" | "pii";
+
+export interface RelocationRequest {
+  id: string; // unique request id
+  materialId: string;
+  driveId: string;
+  name: string;
+  action: RelocationAction;
+  from: {
+    ciclo: string;
+    curso: string;
+    asignatura: string;
+    unidad: string;
+    folderId: string;
+  };
+  to?: {
+    ciclo: string;
+    curso: string;
+    asignatura: string;
+    unidad: string;
+    targetFolderId: string;
+    targetRuta: string;
+    oas: string[];
+  };
+  reason: string;
+  reportedBy: string;
+  createdAt: string;
+}
+
 export const CICLO_ORDER = ["1° Ciclo", "2° Ciclo", "Enseñanza Media"] as const;
+
+export const CURSOS_POR_CICLO: Record<string, string[]> = {
+  "1° Ciclo": ["Kínder", "1° Básico", "2° Básico", "3° Básico", "4° Básico", "Transversal"],
+  "2° Ciclo": ["5° Básico", "6° Básico", "7° Básico", "8° Básico", "Transversal"],
+  "Enseñanza Media": ["1° Medio", "2° Medio", "3° Medio", "4° Medio", "Electivos", "Transversal"],
+};
+
+export const ELECTIVOS_HC: string[] = [
+  "Artes Visuales, Audiovisuales y Multimediales",
+  "Biología Celular y Molecular",
+  "Biología de los Ecosistemas",
+  "Ciencias de la Salud",
+  "Ciencias del Ejercicio Físico y Deportivo",
+  "Comprensión Histórica del Presente",
+  "Creación y Composición Musical",
+  "Diseño y Arquitectura",
+  "Economía y Sociedad",
+  "Estética",
+  "Expresión Corporal",
+  "Filosofía Política",
+  "Física",
+  "Geografía, Territorio y Desafíos Socioambientales",
+  "Geometría 3D",
+  "Interpretación Musical",
+  "Interpretación y Creación en Danza",
+  "Interpretación y Creación en Teatro",
+  "Lectura y Escritura Especializadas",
+  "Límites, Derivadas e Integrales",
+  "Participación y Argumentación en Democracia",
+  "Pensamiento Computacional",
+  "Probabilidad y Estadística",
+  "Promoción de Estilos de Vida Activos y Saludables",
+  "Química",
+  "Seminario de Filosofía",
+  "Taller de Literatura",
+];
 
 export const CURSO_ORDER = [
   "Kínder",
@@ -116,6 +181,53 @@ export const BASALES_3M_4M = new Set([
   "Música",
   "Educación Física y Salud",
 ]);
+
+export function getAllowedSubjectsForCourse(curso: string): string[] {
+  if (curso === "Transversal") return ["Gestión y Transversal"];
+  if (curso === "Electivos") return ELECTIVOS_HC;
+  if (curso === "3° Medio" || curso === "4° Medio") {
+    return [...Array.from(BASALES_3M_4M), "Religión", "Orientación"];
+  }
+  if (curso === "1° Medio" || curso === "2° Medio") {
+    return [
+      "Lengua y Literatura",
+      "Matemática",
+      "Historia, Geografía y Ciencias Sociales",
+      "Biología",
+      "Física",
+      "Química",
+      "Inglés",
+      "Artes Visuales",
+      "Música",
+      "Educación Física y Salud",
+      "Tecnología",
+      "Orientación",
+      "Religión",
+    ];
+  }
+  const lang = ["Kínder", "1° Básico", "2° Básico", "3° Básico", "4° Básico", "5° Básico", "6° Básico"].includes(curso)
+    ? "Lenguaje y Comunicación"
+    : "Lengua y Literatura";
+  return [
+    lang,
+    "Matemática",
+    "Historia, Geografía y Ciencias Sociales",
+    "Ciencias Naturales",
+    "Inglés",
+    "Artes Visuales",
+    "Música",
+    "Educación Física y Salud",
+    "Tecnología",
+    "Orientación",
+    "Religión",
+  ];
+}
+
+export function getRootForCiclo(ciclo: string): { root: string; transversal: string } {
+  if (ciclo === "1° Ciclo") return { root: "Material-1Ciclo", transversal: "Transversal 1° Ciclo y Gestión" };
+  if (ciclo === "2° Ciclo") return { root: "Material-2Ciclo", transversal: "Transversal 2° Ciclo y Gestión" };
+  return { root: "Material-Media", transversal: "Transversal Media y Gestión" };
+}
 
 export function normText(s: string): string {
   return (s || "")

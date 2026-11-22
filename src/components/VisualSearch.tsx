@@ -1,20 +1,24 @@
 import React, { useMemo, useState } from "react";
-import { BookmarkCheck, BookmarkPlus, ExternalLink, Eye, LayoutGrid, List, RotateCcw, Search } from "lucide-react";
+import { ArrowRightLeft, BookmarkCheck, BookmarkPlus, ExternalLink, Eye, LayoutGrid, List, RotateCcw, Search } from "lucide-react";
 import { CICLO_ORDER, normText, sortCursos, type BancoDataset, type MaterialItem } from "../types";
 import MaterialCard from "./MaterialCard";
 
 interface VisualSearchProps {
   dataset: BancoDataset;
   plannedIds: Set<string>;
+  relocatedIds: Set<string>;
   onPreview: (m: MaterialItem) => void;
   onTogglePlan: (m: MaterialItem) => void;
+  onRelocate: (m: MaterialItem) => void;
 }
 
 export default function VisualSearch({
   dataset,
   plannedIds,
+  relocatedIds,
   onPreview,
   onTogglePlan,
+  onRelocate,
 }: VisualSearchProps) {
   const [q, setQ] = useState("");
   const [ciclo, setCiclo] = useState("");
@@ -230,8 +234,10 @@ export default function VisualSearch({
               key={m.id}
               material={m}
               isPlanned={plannedIds.has(m.id)}
+              isRelocated={relocatedIds.has(m.id)}
               onPreview={onPreview}
               onTogglePlan={onTogglePlan}
+              onRelocate={onRelocate}
               showCourseBadge
             />
           ))}
@@ -252,10 +258,14 @@ export default function VisualSearch({
               <tbody>
                 {pageItems.map((m) => {
                   const planned = plannedIds.has(m.id);
+                  const relocated = relocatedIds.has(m.id);
                   return (
                     <tr key={m.id}>
                       <td>
-                        <div style={{ fontWeight: 700, color: "var(--navy-950)" }}>{m.name}</div>
+                        <div style={{ fontWeight: 700, color: "var(--navy-950)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          {m.name}
+                          {relocated && <span className="badge badge-warn">Reubicado</span>}
+                        </div>
                         {m.extracto && (
                           <div style={{ fontSize: 11.5, color: "var(--ink-500)", marginTop: 2 }}>
                             {m.extracto.slice(0, 125)}
@@ -284,6 +294,9 @@ export default function VisualSearch({
                         <div style={{ display: "inline-flex", gap: 5 }}>
                           <button type="button" className="btn btn-sm btn-primary" onClick={() => onPreview(m)}>
                             <Eye size={12} /> Ver
+                          </button>
+                          <button type="button" className="btn btn-sm" onClick={() => onRelocate(m)} title="Reubicar o marcar que no corresponde">
+                            <ArrowRightLeft size={12} />
                           </button>
                           <a href={m.driveUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm">
                             <ExternalLink size={12} />

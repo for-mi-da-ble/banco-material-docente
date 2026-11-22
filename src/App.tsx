@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ArrowRightLeft,
   BarChart3,
   BookOpen,
   ClipboardList,
@@ -7,22 +8,28 @@ import {
   Search,
 } from "lucide-react";
 import {
+  normText,
   sortCursos,
   unpackDataset,
   type BancoDataset,
   type LessonMoment,
   type LessonPlanState,
   type MaterialItem,
+  type RelocationRequest,
 } from "./types";
 import PlannerBoard from "./components/PlannerBoard";
 import VisualSearch from "./components/VisualSearch";
 import LessonBasket from "./components/LessonBasket";
 import CoveragePrepView from "./components/CoveragePrepView";
+import RelocationsView from "./components/RelocationsView";
 import PreviewModal from "./components/PreviewModal";
+import RelocateModal from "./components/RelocateModal";
 
-type ActiveTab = "planner" | "search" | "basket" | "coverage";
+type ActiveTab = "planner" | "search" | "basket" | "relocations" | "coverage";
 
-const STORAGE_KEY = "cmc_banco_docente_plan_v1";
+const PLAN_STORAGE_KEY = "cmc_banco_docente_plan_v1";
+const REL_STORAGE_KEY = "cmc_banco_docente_relocations_v1";
+const APPS_SCRIPT_KEY = "cmc_banco_docente_apps_script_url_v1";
 
 const DEFAULT_PLAN: LessonPlanState = {
   title: "",
@@ -41,7 +48,7 @@ function inferDefaultMoment(tipo: string): LessonMoment {
 }
 
 export default function App() {
-  const [dataset, setDataset] = useState<BancoDataset | null>(null);
+  const [baseDataset, setBaseDataset] = useState<BancoDataset | null>(null);
   const [loadError, setLoadError] = useState("");
   const [tab, setTab] = useState<ActiveTab>("planner");
 
@@ -51,11 +58,12 @@ export default function App() {
   const [selectedUnit, setSelectedUnit] = useState("Unidad 1");
 
   const [previewMaterial, setPreviewMaterial] = useState<MaterialItem | null>(null);
+  const [relocateTarget, setRelocateTarget] = useState<MaterialItem | null>(null);
   const [toast, setToast] = useState("");
 
   const [plan, setPlan] = useState<LessonPlanState>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(PLAN_STORAGE_KEY);
       if (saved) return { ...DEFAULT_PLAN, ...JSON.parse(saved) };
     } catch {
       // ignore storage errors
@@ -63,13 +71,48 @@ export default function App() {
     return DEFAULT_PLAN;
   });
 
+  const [relocations, setRelocations] = useState<RelocationRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem(REL_STORAGE_KEY);
+      if (saved) return JSON.parse(saved) as RelocationRequest[];
+    } catch {
+      // ignore
+    }
+    return [];
+  });
+
+  const [appsScriptUrl, setAppsScriptUrl] = useState<string>(() => {
+    try {
+      return localStorage.getItem(APPS_SCRIPT_KEY) || "";
+    } catch {
+      return "";
+    }
+  });
+
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(plan));
+      localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(plan));
     } catch {
       // ignore
     }
   }, [plan]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(REL_STORAGE_KEY, JSON.stringify(relocations));
+    } catch {
+      // ignore
+    }
+  }, [relocations]);
+
+  const handleSaveAppsScriptUrl = useCallback((url: string) => {
+    setAppsScriptUrl(url);
+    try {
+      localStorage.setItem(APPS_SCRIPT_KEY, url);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     fetch("./data/banco-docente.json")
@@ -77,15 +120,76 @@ export default function App() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then((raw) => setDataset(unpackDataset(raw)))
+      .then((raw) => setBaseDataset(unpackDataset(raw)))
       .catch((err) => setLoadError(String(err)));
   }, []);
+
+  // Aplicar visualmente las reubicaciones pendientes en tiempo real
+  const relocationByMatId = useMemo(() => {
+    const map = new Map<string, RelocationRequest>();
+    for (const r of relocations) map.set(r.materialId, r);
+    return map;
+  }, [relocations]);
+
+  const relocatedIds = useMemo(
+    () => new Set(relocations.filter((r) => r.action === "reubicar").map((r) => r.materialId)),
+    [relocations],
+  );
+
+  const dataset = useMemo<BancoDataset | null>(() => {
+    if (!baseDataset) return null;
+    if (relocations.length === 0) return baseDataset;
+
+    const effectiveMaterials: MaterialItem[] = [];
+    for (const m of baseDataset.materials) {
+      const req = relocationByMatId.get(m.id);
+      if (!req) {
+        effectiveMaterials.push(m);
+        continue;
+      }
+      if (req.action === "eliminar" || req.action === "pii") {
+        // Ocultar visualmente del banco hasta deshacer o aplicar
+        continue;
+      }
+      if (req.action === "reubicar" && req.to) {
+        const nextCurso = req.to.curso;
+        const nextAsig = req.to.asignatura;
+        const nextUnit = req.to.unidad;
+        const nextOas = req.to.oas.length > 0 ? req.to.oas : m.oas;
+        effectiveMaterials.push({
+          ...m,
+          ciclo: req.to.ciclo,
+          curso: nextCurso,
+          asignatura: nextAsig,
+          esElectivo: nextCurso === "Electivos",
+          unidad: nextUnit,
+          folderId: req.to.targetFolderId || m.folderId,
+          oas: nextOas,
+          searchText: normText(
+            `${m.name} ${nextCurso} ${nextAsig} ${nextUnit} ${m.tipo} ${nextOas.join(" ")} ${m.extracto} ${m.id}`,
+          ),
+        });
+      }
+    }
+
+    return {
+      ...baseDataset,
+      meta: {
+        ...baseDataset.meta,
+        totals: {
+          ...baseDataset.meta.totals,
+          materiales: effectiveMaterials.length,
+        },
+      },
+      materials: effectiveMaterials,
+    };
+  }, [baseDataset, relocations, relocationByMatId]);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => {
       setToast((cur) => (cur === msg ? "" : cur));
-    }, 2600);
+    }, 3000);
   }, []);
 
   const handleCopyText = useCallback(
@@ -119,6 +223,23 @@ export default function App() {
           ],
         };
       });
+    },
+    [showToast],
+  );
+
+  const handleSaveRelocation = useCallback(
+    (req: RelocationRequest) => {
+      setRelocations((prev) => {
+        const filtered = prev.filter((x) => x.materialId !== req.materialId);
+        return [req, ...filtered];
+      });
+      if (req.action === "reubicar" && req.to) {
+        showToast(`Reubicado visualmente a ${req.to.curso} · ${req.to.asignatura} (${req.to.unidad})`);
+      } else if (req.action === "pii") {
+        showToast("Marcado para cuarentena PII y ocultado de tu vista");
+      } else {
+        showToast("Marcado como 'No corresponde' (revisa la pestaña Reubicaciones)");
+      }
     },
     [showToast],
   );
@@ -216,7 +337,7 @@ export default function App() {
               className={`nav-tab ${tab === "planner" ? "active" : ""}`}
               onClick={() => setTab("planner")}
             >
-              <BookOpen size={15} /> Planificador Visual
+              <BookOpen size={15} /> Planificador
             </button>
             <button
               type="button"
@@ -237,10 +358,22 @@ export default function App() {
             </button>
             <button
               type="button"
+              className={`nav-tab ${tab === "relocations" ? "active" : ""}`}
+              onClick={() => setTab("relocations")}
+            >
+              <ArrowRightLeft size={15} /> Reubicaciones
+              {relocations.length > 0 && (
+                <span className="nav-pill-count tabular" style={{ background: "#fb923c" }}>
+                  {relocations.length}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
               className={`nav-tab ${tab === "coverage" ? "active" : ""}`}
               onClick={() => setTab("coverage")}
             >
-              <BarChart3 size={15} /> Cobertura OA y Preparación
+              <BarChart3 size={15} /> Cobertura OA
             </button>
           </nav>
 
@@ -260,6 +393,7 @@ export default function App() {
           <PlannerBoard
             dataset={dataset}
             plannedIds={plannedIds}
+            relocatedIds={relocatedIds}
             selectedCiclo={selectedCiclo}
             selectedCurso={selectedCurso}
             selectedAsig={selectedAsig}
@@ -270,6 +404,7 @@ export default function App() {
             onSelectUnit={setSelectedUnit}
             onPreview={setPreviewMaterial}
             onTogglePlan={handleTogglePlan}
+            onRelocate={setRelocateTarget}
             onCopyText={handleCopyText}
           />
         )}
@@ -278,8 +413,10 @@ export default function App() {
           <VisualSearch
             dataset={dataset}
             plannedIds={plannedIds}
+            relocatedIds={relocatedIds}
             onPreview={setPreviewMaterial}
             onTogglePlan={handleTogglePlan}
+            onRelocate={setRelocateTarget}
           />
         )}
 
@@ -300,6 +437,26 @@ export default function App() {
           />
         )}
 
+        {tab === "relocations" && (
+          <RelocationsView
+            requests={relocations}
+            appsScriptUrl={appsScriptUrl}
+            onSaveAppsScriptUrl={(url) => {
+              handleSaveAppsScriptUrl(url);
+              showToast("URL de Apps Script guardada");
+            }}
+            onRemoveRequest={(id) => {
+              setRelocations((prev) => prev.filter((r) => r.id !== id));
+              showToast("Cambio deshecho");
+            }}
+            onClearAll={() => {
+              setRelocations([]);
+              showToast("Se deshicieron todas las reubicaciones pendientes");
+            }}
+            onCopyText={handleCopyText}
+          />
+        )}
+
         {tab === "coverage" && (
           <CoveragePrepView
             dataset={dataset}
@@ -315,7 +472,17 @@ export default function App() {
         isPlanned={previewMaterial ? plannedIds.has(previewMaterial.id) : false}
         onClose={() => setPreviewMaterial(null)}
         onTogglePlan={handleTogglePlan}
+        onRelocate={setRelocateTarget}
         onCopyText={handleCopyText}
+      />
+
+      <RelocateModal
+        material={relocateTarget}
+        dataset={dataset}
+        existingRequest={relocateTarget ? relocationByMatId.get(relocateTarget.id) : null}
+        defaultReporter={plan.teacher}
+        onClose={() => setRelocateTarget(null)}
+        onSave={handleSaveRelocation}
       />
 
       {toast && (

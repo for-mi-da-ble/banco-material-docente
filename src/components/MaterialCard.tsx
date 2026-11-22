@@ -1,12 +1,14 @@
 import React from "react";
-import { BookmarkCheck, BookmarkPlus, ExternalLink, Eye, FileSpreadsheet, FileText, Presentation } from "lucide-react";
+import { ArrowRightLeft, BookmarkCheck, BookmarkPlus, ExternalLink, Eye, FileSpreadsheet, FileText, Presentation } from "lucide-react";
 import type { FileKind, MaterialItem } from "../types";
 
 interface MaterialCardProps {
   material: MaterialItem;
   isPlanned: boolean;
+  isRelocated?: boolean;
   onPreview: (m: MaterialItem) => void;
   onTogglePlan: (m: MaterialItem) => void;
+  onRelocate: (m: MaterialItem) => void;
   onClickOa?: (oa: string) => void;
   showCourseBadge?: boolean;
 }
@@ -28,8 +30,10 @@ function KindIcon({ kind }: { kind: FileKind }) {
 export default function MaterialCard({
   material,
   isPlanned,
+  isRelocated = false,
   onPreview,
   onTogglePlan,
+  onRelocate,
   onClickOa,
   showCourseBadge = false,
 }: MaterialCardProps) {
@@ -42,6 +46,11 @@ export default function MaterialCard({
               <KindIcon kind={material.kind} /> {KIND_LABELS[material.kind]}
             </span>
             <span className="badge badge-navy">{material.tipo}</span>
+            {isRelocated && (
+              <span className="badge badge-warn" title="Reubicado visualmente (pendiente sincronizar en Drive)">
+                Reubicado
+              </span>
+            )}
           </div>
           <span className="mono tabular" style={{ fontSize: 11.5, color: "var(--ink-500)", fontWeight: 600 }}>
             {material.anio}
@@ -105,6 +114,15 @@ export default function MaterialCard({
         >
           <ExternalLink size={12} /> Drive
         </a>
+
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() => onRelocate(material)}
+          title="Marcar que no corresponde aquí o reubicar en otro curso/asignatura/unidad"
+        >
+          <ArrowRightLeft size={12} /> Reubicar
+        </button>
 
         <button
           type="button"

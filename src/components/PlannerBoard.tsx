@@ -12,6 +12,7 @@ import MaterialCard from "./MaterialCard";
 interface PlannerBoardProps {
   dataset: BancoDataset;
   plannedIds: Set<string>;
+  relocatedIds: Set<string>;
   selectedCiclo: string;
   selectedCurso: string;
   selectedAsig: string;
@@ -22,12 +23,14 @@ interface PlannerBoardProps {
   onSelectUnit: (u: string) => void;
   onPreview: (m: MaterialItem) => void;
   onTogglePlan: (m: MaterialItem) => void;
+  onRelocate: (m: MaterialItem) => void;
   onCopyText: (text: string, label: string) => void;
 }
 
 export default function PlannerBoard({
   dataset,
   plannedIds,
+  relocatedIds,
   selectedCiclo,
   selectedCurso,
   selectedAsig,
@@ -38,6 +41,7 @@ export default function PlannerBoard({
   onSelectUnit,
   onPreview,
   onTogglePlan,
+  onRelocate,
   onCopyText,
 }: PlannerBoardProps) {
   const [tipoFilter, setTipoFilter] = useState("");
@@ -488,8 +492,10 @@ export default function PlannerBoard({
               key={m.id}
               material={m}
               isPlanned={plannedIds.has(m.id)}
+              isRelocated={relocatedIds.has(m.id)}
               onPreview={onPreview}
               onTogglePlan={onTogglePlan}
+              onRelocate={onRelocate}
               onClickOa={(code) => setOaFilter(oaFilter === code ? "" : code)}
             />
           ))}
