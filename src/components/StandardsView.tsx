@@ -567,12 +567,20 @@ export default function StandardsView({
         </div>
         <div className="no-print" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <a
-            href={standards.meta.sheet_matrix_url}
+            href="https://for-mi-da-ble.github.io/trayectorias-simce/"
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-primary"
           >
-            <ExternalLink size={14} /> Abrir Matriz en Google Sheets
+            <ExternalLink size={14} /> Mapa Visual de Trayectorias SIMCE
+          </a>
+          <a
+            href={standards.meta.sheet_matrix_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn"
+          >
+            <ExternalLink size={14} /> Matriz en Google Sheets
           </a>
           <a
             href="./data/plan_anual_por_estandares.csv"
