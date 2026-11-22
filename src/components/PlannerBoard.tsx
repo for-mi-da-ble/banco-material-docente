@@ -1,16 +1,33 @@
 import React, { useMemo, useState } from "react";
-import { BookMarked, Copy, ExternalLink, FolderOpen, Layers, Search, Sparkles } from "lucide-react";
+import {
+  Award,
+  BookMarked,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  ExternalLink,
+  FolderOpen,
+  Layers,
+  Search,
+  Sparkles,
+  Target,
+} from "lucide-react";
 import {
   BASALES_3M_4M,
+  buildOaGuideBlueprint,
   CICLO_ORDER,
   sortCursos,
   type BancoDataset,
   type MaterialItem,
+  type StandardDoc,
+  type StandardIndicator,
+  type StandardsDataset,
 } from "../types";
 import MaterialCard from "./MaterialCard";
 
 interface PlannerBoardProps {
   dataset: BancoDataset;
+  standards: StandardsDataset | null;
   plannedIds: Set<string>;
   relocatedIds: Set<string>;
   selectedCiclo: string;
@@ -25,10 +42,12 @@ interface PlannerBoardProps {
   onTogglePlan: (m: MaterialItem) => void;
   onRelocate: (m: MaterialItem) => void;
   onCopyText: (text: string, label: string) => void;
+  onOpenStandards?: (curso: string, asig: string, unidad: string) => void;
 }
 
 export default function PlannerBoard({
   dataset,
+  standards,
   plannedIds,
   relocatedIds,
   selectedCiclo,
@@ -43,11 +62,43 @@ export default function PlannerBoard({
   onTogglePlan,
   onRelocate,
   onCopyText,
+  onOpenStandards,
 }: PlannerBoardProps) {
   const [tipoFilter, setTipoFilter] = useState("");
   const [anioFilter, setAnioFilter] = useState("");
   const [oaFilter, setOaFilter] = useState("");
   const [localQ, setLocalQ] = useState("");
+  const [expandedOaKey, setExpandedOaKey] = useState<string | null>(null);
+
+  // Índices de estándares SIMCE (cuando existen para la combinación Curso/Asignatura)
+  const stdDocById = useMemo(() => {
+    const map = new Map<string, StandardDoc>();
+    if (standards) {
+      for (const d of standards.docs) map.set(d.docId, d);
+    }
+    return map;
+  }, [standards]);
+
+  const stdIndicatorByCode = useMemo(() => {
+    const map = new Map<string, StandardIndicator>();
+    if (standards) {
+      for (const d of standards.docs) {
+        for (const ind of d.indicadores) map.set(ind.code, ind);
+      }
+    }
+    return map;
+  }, [standards]);
+
+  const activeCourseStdLink = useMemo(() => {
+    if (!standards) return null;
+    return (
+      standards.courseLinks.find(
+        (c) => c.curso === selectedCurso && c.asignatura === selectedAsig,
+      ) || null
+    );
+  }, [standards, selectedCurso, selectedAsig]);
+
+  const activeStdDoc = activeCourseStdLink ? stdDocById.get(activeCourseStdLink.docId) || null : null;
 
   // Conteos por ciclo
   const cicloCounts = useMemo(() => {
@@ -118,11 +169,28 @@ export default function PlannerBoard({
 
   const isTransversal = selectedCurso === "Transversal";
   const isProfesores = selectedCurso === "Profesores";
-  const unitTabs = isTransversal
-    ? ["Transversal"]
-    : isProfesores
-    ? ["Todas"]
-    : ["Todas", "Unidad 1", "Unidad 2", "Unidad 3", "Unidad 4"];
+  const catalogUnitsForSubject = useMemo(() => {
+    if (isTransversal || isProfesores || selectedCurso === "Electivos") return [];
+    const prefix = `${selectedCurso}|${selectedAsig}|`;
+    const found = Object.keys(dataset.oaCatalog)
+      .filter((k) => k.startsWith(prefix))
+      .map((k) => k.slice(prefix.length));
+    return found.sort((a, b) => {
+      const aNum = a.startsWith("Unidad ") ? Number(a.slice(7)) : 99;
+      const bNum = b.startsWith("Unidad ") ? Number(b.slice(7)) : 99;
+      if (aNum !== bNum) return aNum - bNum;
+      return a.localeCompare(b, "es");
+    });
+  }, [dataset.oaCatalog, selectedCurso, selectedAsig, isTransversal, isProfesores]);
+
+  const unitTabs = useMemo(() => {
+    if (isTransversal) return ["Transversal"];
+    if (isProfesores) return ["Todas"];
+    if (catalogUnitsForSubject.length > 0) {
+      return ["Todas", ...catalogUnitsForSubject];
+    }
+    return ["Todas", "Unidad 1", "Unidad 2", "Unidad 3", "Unidad 4"];
+  }, [isTransversal, isProfesores, catalogUnitsForSubject]);
 
   // Materiales visibles tras filtrar unidad, tipo, año, OA y texto
   const visibleMaterials = useMemo(() => {
@@ -146,14 +214,16 @@ export default function PlannerBoard({
     return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
   }, [subjectMaterials, selectedUnit]);
 
-  // OAs oficiales MINEDUC para esta (Curso, Asignatura, Unidad)
+  // OAs oficiales MINEDUC para esta (Curso, Asignatura, Unidad) + Estándares SIMCE asociados
   const unitOaCards = useMemo(() => {
     if (isTransversal || isProfesores) return [];
     const lookupUnits =
       selectedCurso === "Electivos"
         ? ["General"]
         : selectedUnit === "Todas"
-        ? ["Unidad 1", "Unidad 2", "Unidad 3", "Unidad 4"]
+        ? catalogUnitsForSubject.length > 0
+          ? catalogUnitsForSubject
+          : ["Unidad 1", "Unidad 2", "Unidad 3", "Unidad 4"]
         : [selectedUnit];
 
     const oaCounts = new Map<string, number>();
@@ -165,24 +235,55 @@ export default function PlannerBoard({
     }
 
     const seen = new Set<string>();
-    const list: Array<{ oa: string; eje: string; desc: string; unidad: string; count: number }> = [];
+    const list: Array<{
+      oa: string;
+      eje: string;
+      desc: string;
+      unidad: string;
+      count: number;
+      stdIndicators: StandardIndicator[];
+      stdSugerencia: string;
+    }> = [];
     for (const u of lookupUnits) {
-      const entries = dataset.oaCatalog[`${selectedCurso}|${selectedAsig}|${u}`] || [];
+      const uKey = `${selectedCurso}|${selectedAsig}|${u}`;
+      const entries = dataset.oaCatalog[uKey] || [];
+      const uStd = standards?.unitLinks[uKey];
+      const oaStdMap = new Map((uStd?.oas || []).map((o) => [o.oa, o]));
+
       for (const e of entries) {
         const key = `${u}|${e.oa}`;
         if (seen.has(key)) continue;
         seen.add(key);
+        const oaStd = oaStdMap.get(e.oa);
+        const stdIndicators = oaStd
+          ? oaStd.indicadores
+              .map((code) => stdIndicatorByCode.get(code))
+              .filter((x): x is StandardIndicator => Boolean(x))
+          : [];
         list.push({
           oa: e.oa,
           eje: e.eje,
           desc: e.desc,
           unidad: u,
           count: oaCounts.get(e.oa) || 0,
+          stdIndicators,
+          stdSugerencia: oaStd?.sugerencia || "",
         });
       }
     }
     return list;
-  }, [dataset.oaCatalog, selectedCurso, selectedAsig, selectedUnit, subjectMaterials, isTransversal, isProfesores]);
+  }, [
+    dataset.oaCatalog,
+    standards,
+    stdIndicatorByCode,
+    catalogUnitsForSubject,
+    selectedCurso,
+    selectedAsig,
+    selectedUnit,
+    subjectMaterials,
+    isTransversal,
+    isProfesores,
+  ]);
 
   // Carpeta real en Google Drive para la unidad seleccionada
   const activeDriveFolder = useMemo(() => {
@@ -350,7 +451,7 @@ export default function PlannerBoard({
                 }}
               >
                 <Layers size={13} />
-                {u}
+                {u.startsWith("Transversal") ? "Transversal" : u}
                 <span className="tabular" style={{ opacity: 0.78, fontSize: 11.5 }}>
                   ({cnt})
                 </span>
@@ -384,11 +485,11 @@ export default function PlannerBoard({
         </div>
       </div>
 
-      {/* Panel de Objetivos de Aprendizaje MINEDUC de la Unidad */}
+      {/* Panel de Objetivos de Aprendizaje MINEDUC de la Unidad + Estándares SIMCE */}
       {unitOaCards.length > 0 && (
         <div className="oa-panel">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <BookMarked size={16} style={{ color: "var(--navy-800)" }} />
               <strong style={{ fontSize: 13.5 }}>
                 Objetivos de Aprendizaje MINEDUC — {selectedCurso} · {selectedAsig}
@@ -405,13 +506,66 @@ export default function PlannerBoard({
             )}
           </div>
 
+          {activeStdDoc && activeCourseStdLink && (
+            <div className="std-banner-strip">
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <Award size={15} style={{ color: "var(--navy-800)", flexShrink: 0 }} />
+                <strong style={{ fontSize: 12.5, color: "var(--navy-950)" }}>
+                  {activeStdDoc.titulo}
+                </strong>
+                <span
+                  className={`badge ${
+                    activeCourseStdLink.vinculo === "Directo"
+                      ? "badge-ok"
+                      : activeCourseStdLink.vinculo.includes("Tramo")
+                      ? "badge-navy"
+                      : "badge-warn"
+                  }`}
+                >
+                  {activeCourseStdLink.vinculo}
+                </span>
+                <span style={{ fontSize: 11.5, color: "var(--ink-700)" }}>
+                  Elemental: {activeStdDoc.puntajes.elemental} · Adecuado: {activeStdDoc.puntajes.adecuado}
+                </span>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {onOpenStandards && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={() =>
+                      onOpenStandards(
+                        selectedCurso,
+                        selectedAsig,
+                        selectedUnit === "Todas" ? activeCourseStdLink.unidades[0] || "Unidad 1" : selectedUnit,
+                      )
+                    }
+                  >
+                    <Target size={12} /> Pauta de Guías (3 niveles)
+                  </button>
+                )}
+                <a
+                  href={`https://drive.google.com/file/d/${activeStdDoc.driveId}/view`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-sm"
+                >
+                  PDF SIMCE <ExternalLink size={11} />
+                </a>
+              </div>
+            </div>
+          )}
+
           <div className="oa-grid">
             {unitOaCards.map((item) => {
+              const cardKey = `${item.unidad}-${item.oa}`;
               const isSel = oaFilter === item.oa;
               const covered = item.count > 0;
+              const hasStd = item.stdIndicators.length > 0;
+              const isExpanded = expandedOaKey === cardKey;
               return (
                 <div
-                  key={`${item.unidad}-${item.oa}`}
+                  key={cardKey}
                   className={`oa-box ${isSel ? "selected" : ""}`}
                 >
                   <div>
@@ -421,7 +575,9 @@ export default function PlannerBoard({
                           {item.oa}
                         </strong>
                         {selectedUnit === "Todas" && item.unidad !== "General" && (
-                          <span className="badge badge-neutral">{item.unidad}</span>
+                          <span className="badge badge-neutral">
+                            {item.unidad.startsWith("Transversal") ? "Transv." : item.unidad}
+                          </span>
                         )}
                       </div>
                       <span className={`badge ${covered ? "badge-ok" : "badge-warn"} tabular`}>
@@ -431,17 +587,106 @@ export default function PlannerBoard({
                     <div className="oa-box-desc" style={{ marginTop: 6 }} title={item.desc}>
                       {item.desc}
                     </div>
+
+                    {hasStd && (
+                      <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+                          {item.stdIndicators.map((ind) => (
+                            <span
+                              key={ind.code}
+                              className={`badge mono ${
+                                ind.nivelMinimo.includes("Expectativa") ? "badge-adv" : "badge-navy"
+                              }`}
+                              style={{ fontSize: 10 }}
+                              title={`${ind.code} (${ind.eje}): ${ind.tema}`}
+                            >
+                              {ind.code}
+                            </span>
+                          ))}
+                        </div>
+
+                        {isExpanded && (
+                          <div className="std-inline-drawer">
+                            {item.stdSugerencia && (
+                              <div style={{ fontSize: 11.5, color: "var(--navy-900)", marginBottom: 6 }}>
+                                <strong>Guía:</strong> {item.stdSugerencia}
+                              </div>
+                            )}
+                            {item.stdIndicators.map((ind) => (
+                              <div key={ind.code} className="std-inline-item">
+                                <div style={{ fontWeight: 700, fontSize: 11.5, color: "var(--navy-950)", marginBottom: 3 }}>
+                                  <span className="mono">{ind.code}</span> · {ind.tema}
+                                </div>
+                                {ind.elemental && (
+                                  <div style={{ fontSize: 11, color: "var(--warn-fg)", marginBottom: 2 }}>
+                                    <strong>Elemental:</strong> {ind.elemental}
+                                  </div>
+                                )}
+                                {ind.adecuado && (
+                                  <div style={{ fontSize: 11, color: "var(--ok-fg)", marginBottom: 2 }}>
+                                    <strong>Adecuado:</strong> {ind.adecuado}
+                                  </div>
+                                )}
+                                {ind.avanzado && (
+                                  <div style={{ fontSize: 11, color: "#3730a3" }}>
+                                    <strong>Avanzado:</strong> {ind.avanzado}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  <div style={{ display: "flex", gap: 6, justifyContent: "space-between", alignItems: "center" }}>
-                    <button
-                      type="button"
-                      className="btn btn-sm"
-                      onClick={() => onCopyText(`${item.oa}: ${item.desc}`, `${item.oa} copiado para tu guía/prueba`)}
-                      title="Copiar redacción oficial MINEDUC para pegar en el encabezado de tu Word/Docs"
-                    >
-                      <Copy size={11} /> Copiar OA
-                    </button>
+                  <div style={{ display: "flex", gap: 6, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", marginTop: 6 }}>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => onCopyText(`${item.oa}: ${item.desc}`, `${item.oa} copiado para tu guía/prueba`)}
+                        title="Copiar redacción oficial MINEDUC para pegar en el encabezado de tu Word/Docs"
+                      >
+                        <Copy size={11} /> Copiar OA
+                      </button>
+                      {hasStd && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => setExpandedOaKey(isExpanded ? null : cardKey)}
+                            title="Ver descriptores Elemental, Adecuado y Expectativa Curricular asociados a este OA"
+                          >
+                            {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                            {isExpanded ? "Ocultar" : `Estándares (${item.stdIndicators.length})`}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-ok"
+                            onClick={() =>
+                              onCopyText(
+                                buildOaGuideBlueprint({
+                                  curso: selectedCurso,
+                                  asignatura: selectedAsig,
+                                  unidad: item.unidad,
+                                  oa: item.oa,
+                                  oaDesc: item.desc,
+                                  docTitle: activeStdDoc?.titulo || "",
+                                  vinculo: activeCourseStdLink?.vinculo || "",
+                                  sugerencia: item.stdSugerencia,
+                                  indicators: item.stdIndicators,
+                                }),
+                                `Pauta ${item.oa} + Estándares copiada para tu guía`,
+                              )
+                            }
+                            title="Copiar OA junto con los niveles Elemental, Adecuado y Desafío para diseñar tu guía"
+                          >
+                            <Copy size={11} /> Guía
+                          </button>
+                        </>
+                      )}
+                    </div>
                     {covered && (
                       <button
                         type="button"

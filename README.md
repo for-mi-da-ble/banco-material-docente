@@ -8,6 +8,7 @@ Aplicación web interactiva pensada para **docentes y UTP** del Colegio Marina d
 3. **Mi Planificación de Clase**: arma tu secuencia didáctica seleccionando recursos en **Inicio / Desarrollo / Evaluación**, reúne automáticamente todos los OA MINEDUC cubiertos, agrega notas metodológicas e **imprime/guarda en PDF** o **copia el resumen listo para Google Classroom**.
 4. **Buscador Global Instantáneo**: busca en menos de 5 ms entre los **3.938 recursos pedagógicos** (vista de tarjetas o tabla).
 5. **Cobertura OA y Preparación de Nuevo Material**: detecta brechas curriculares (OA sin material), abre la carpeta destino exacta en Google Drive y verifica tus archivos con la **Barrera Preventiva PII/NEE** antes de subirlos.
+6. **Estándares de Aprendizaje SIMCE × OA por Unidad**: asocia los 10 documentos oficiales de Estándares de Aprendizaje (155 indicadores en 3 niveles: Elemental, Adecuado y Expectativa Curricular) con los 561 OA por unidad de 1° Básico a 2° Medio, permitiendo copiar en 1 clic pautas escalonadas para diseñar guías y evaluaciones.
 
 ## Privacidad y Gobernanza
 - Este repositorio **no almacena documentos ni datos personales de estudiantes (PII/NEE)**.

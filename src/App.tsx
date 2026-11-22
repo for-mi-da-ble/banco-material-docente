@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRightLeft,
+  Award,
   BarChart3,
   BookOpen,
   ClipboardList,
@@ -16,16 +17,18 @@ import {
   type LessonPlanState,
   type MaterialItem,
   type RelocationRequest,
+  type StandardsDataset,
 } from "./types";
 import PlannerBoard from "./components/PlannerBoard";
 import VisualSearch from "./components/VisualSearch";
 import LessonBasket from "./components/LessonBasket";
 import CoveragePrepView from "./components/CoveragePrepView";
 import RelocationsView from "./components/RelocationsView";
+import StandardsView from "./components/StandardsView";
 import PreviewModal from "./components/PreviewModal";
 import RelocateModal from "./components/RelocateModal";
 
-type ActiveTab = "planner" | "search" | "basket" | "relocations" | "coverage";
+type ActiveTab = "planner" | "standards" | "search" | "basket" | "relocations" | "coverage";
 
 const PLAN_STORAGE_KEY = "cmc_banco_docente_plan_v1";
 const REL_STORAGE_KEY = "cmc_banco_docente_relocations_v1";
@@ -49,6 +52,7 @@ function inferDefaultMoment(tipo: string): LessonMoment {
 
 export default function App() {
   const [baseDataset, setBaseDataset] = useState<BancoDataset | null>(null);
+  const [standards, setStandards] = useState<StandardsDataset | null>(null);
   const [loadError, setLoadError] = useState("");
   const [tab, setTab] = useState<ActiveTab>("planner");
 
@@ -56,6 +60,7 @@ export default function App() {
   const [selectedCurso, setSelectedCurso] = useState("1° Medio");
   const [selectedAsig, setSelectedAsig] = useState("Matemática");
   const [selectedUnit, setSelectedUnit] = useState("Unidad 1");
+  const [stdJumpTarget, setStdJumpTarget] = useState<{ curso: string; asig: string; unidad: string } | null>(null);
 
   const [previewMaterial, setPreviewMaterial] = useState<MaterialItem | null>(null);
   const [relocateTarget, setRelocateTarget] = useState<MaterialItem | null>(null);
@@ -122,6 +127,15 @@ export default function App() {
       })
       .then((raw) => setBaseDataset(unpackDataset(raw)))
       .catch((err) => setLoadError(String(err)));
+
+    fetch("./data/estandares-oa.json")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: StandardsDataset | null) => {
+        if (data) setStandards(data);
+      })
+      .catch(() => {
+        // optional enrichment
+      });
   }, []);
 
   // Aplicar visualmente las reubicaciones pendientes en tiempo real
@@ -296,6 +310,15 @@ export default function App() {
     [],
   );
 
+  const handleOpenUnitInStandards = useCallback(
+    (curso: string, asig: string, unidad: string) => {
+      setStdJumpTarget({ curso, asig, unidad });
+      setTab("standards");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [],
+  );
+
   if (loadError) {
     return (
       <div className="shell">
@@ -339,6 +362,13 @@ export default function App() {
               onClick={() => setTab("planner")}
             >
               <BookOpen size={15} /> Planificador
+            </button>
+            <button
+              type="button"
+              className={`nav-tab ${tab === "standards" ? "active" : ""}`}
+              onClick={() => setTab("standards")}
+            >
+              <Award size={15} /> Estándares SIMCE
             </button>
             <button
               type="button"
@@ -404,6 +434,7 @@ export default function App() {
         {tab === "planner" && (
           <PlannerBoard
             dataset={dataset}
+            standards={standards}
             plannedIds={plannedIds}
             relocatedIds={relocatedIds}
             selectedCiclo={selectedCiclo}
@@ -417,6 +448,20 @@ export default function App() {
             onPreview={setPreviewMaterial}
             onTogglePlan={handleTogglePlan}
             onRelocate={setRelocateTarget}
+            onCopyText={handleCopyText}
+            onOpenStandards={handleOpenUnitInStandards}
+          />
+        )}
+
+        {tab === "standards" && standards && (
+          <StandardsView
+            key={stdJumpTarget ? `${stdJumpTarget.curso}|${stdJumpTarget.asig}|${stdJumpTarget.unidad}` : "default"}
+            dataset={dataset}
+            standards={standards}
+            initialCurso={stdJumpTarget?.curso}
+            initialAsig={stdJumpTarget?.asig}
+            initialUnit={stdJumpTarget?.unidad}
+            onOpenUnitInPlanner={handleOpenUnitInPlanner}
             onCopyText={handleCopyText}
           />
         )}

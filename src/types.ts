@@ -67,6 +67,124 @@ export interface BancoDataset {
   folders: FolderEntry[];
 }
 
+export interface StandardIndicator {
+  code: string;
+  eje: string;
+  tema: string;
+  elemental: string | null;
+  adecuado: string | null;
+  avanzado: string | null;
+  nivelMinimo: string;
+}
+
+export interface StandardDoc {
+  docId: string;
+  fileName: string;
+  driveId: string;
+  titulo: string;
+  asignatura: string;
+  cursoEvaluado: string;
+  cobertura: string;
+  decreto: string;
+  puntajes: {
+    adecuado: string;
+    elemental: string;
+    insuficiente: string;
+  };
+  resumenNiveles: {
+    insuficiente: string;
+    elemental: string;
+    adecuado: string;
+    sobreAdecuado: string;
+  };
+  indicadores: StandardIndicator[];
+}
+
+export interface CourseStandardLink {
+  ciclo: string;
+  curso: string;
+  asignatura: string;
+  docId: string;
+  vinculo: "Directo" | "Progresión de Tramo" | "Progresión Base del Ciclo";
+  notaVinculo: string;
+  unidades: string[];
+}
+
+export interface OaStandardLink {
+  oa: string;
+  eje: string;
+  indicadores: string[];
+  sugerencia: string;
+}
+
+export interface UnitStandardLink {
+  docId: string;
+  vinculo: "Directo" | "Progresión de Tramo" | "Progresión Base del Ciclo";
+  notaVinculo: string;
+  indicadoresUnidad: string[];
+  oas: OaStandardLink[];
+  totalOasUnidad: number;
+  oasVinculados: number;
+  oasOtroEje: number;
+}
+
+export interface StandardsDataset {
+  meta: {
+    generated_at: string;
+    source_folder_url: string;
+    sheet_matrix_url: string;
+    totals: {
+      documentos: number;
+      indicadores: number;
+      cursos_asignaturas: number;
+      unidades_vinculadas: number;
+      oas_unidad_vinculados: number;
+      oas_unidad_otro_eje: number;
+      filas_cruce_oa_estandar: number;
+    };
+  };
+  docs: StandardDoc[];
+  courseLinks: CourseStandardLink[];
+  unitLinks: Record<string, UnitStandardLink>;
+}
+
+export function buildOaGuideBlueprint(params: {
+  curso: string;
+  asignatura: string;
+  unidad: string;
+  oa: string;
+  oaDesc: string;
+  docTitle: string;
+  vinculo: string;
+  sugerencia: string;
+  indicators: StandardIndicator[];
+}): string {
+  const lines: string[] = [
+    `PAUTA PARA GUÍA DE APRENDIZAJE / EVALUACIÓN — ${params.curso} · ${params.asignatura} · ${params.unidad}`,
+    `Referente SIMCE: ${params.docTitle} (${params.vinculo})`,
+    "",
+    `OBJETIVO DE APRENDIZAJE (${params.oa}):`,
+    params.oaDesc,
+    "",
+    `ORIENTACIÓN DIDÁCTICA: ${params.sugerencia}`,
+    "",
+    "PROGRESIÓN DE ESTÁNDARES DE APRENDIZAJE (DISEÑO EN 3 NIVELES):",
+  ];
+  for (const ind of params.indicators) {
+    lines.push(`\n• [${ind.code}] ${ind.eje} — ${ind.tema}`);
+    if (ind.elemental) {
+      lines.push(`  - Nivel Elemental (Inicio / Nivelación): ${ind.elemental}`);
+    }
+    if (ind.adecuado) {
+      lines.push(`  - Nivel Adecuado (Desarrollo / Meta): ${ind.adecuado}`);
+    }
+    if (ind.avanzado) {
+      lines.push(`  - Expectativa Curricular / Sobre Adecuado (Desafío): ${ind.avanzado}`);
+    }
+  }
+  return lines.join("\n");
+}
+
 export type LessonMoment = "inicio" | "desarrollo" | "evaluacion";
 
 export interface PlannedResource {
