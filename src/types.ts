@@ -13,6 +13,7 @@ export interface MaterialItem {
   esElectivo: boolean;
   unidad: string;
   tipo: string;
+  origen: string;
   oas: string[];
   extracto: string;
   driveUrl: string;
@@ -422,6 +423,42 @@ export function sortCursos(cursos: string[]): string[] {
   });
 }
 
+export const FUENTE_ORDER = [
+  "Docentes Colegio",
+  "Twinkl",
+  "Ziemax",
+  "Minisaberes",
+  "MINEDUC / Agencia",
+  "Editorial / Libro",
+  "Preu / Ensayos",
+  "Otra Organización",
+] as const;
+
+export function isExternalSource(origen: string): boolean {
+  return Boolean(origen && origen !== "Docentes Colegio");
+}
+
+export function getSourceBadgeClass(origen: string): string {
+  switch (origen) {
+    case "Docentes Colegio":
+      return "badge-src-school";
+    case "Twinkl":
+      return "badge-src-twinkl";
+    case "Ziemax":
+      return "badge-src-ziemax";
+    case "Minisaberes":
+      return "badge-src-minisaberes";
+    case "MINEDUC / Agencia":
+      return "badge-src-mineduc";
+    case "Editorial / Libro":
+      return "badge-src-editorial";
+    case "Preu / Ensayos":
+      return "badge-src-preu";
+    default:
+      return "badge-src-ext";
+  }
+}
+
 interface RawPayload {
   meta: BancoDataset["meta"];
   dict: {
@@ -430,9 +467,10 @@ interface RawPayload {
     asigs: string[];
     unidades: string[];
     tipos: string[];
+    fuentes?: string[];
   };
   materials: Array<
-    [string, string, string, FileKind, string, number, number, number, number, number, number, number, string[], string]
+    [string, string, string, FileKind, string, number, number, number, number, number, number, number, string[], string, number?]
   >;
   coverage: CoverageItem[];
   oaCatalog: Record<string, OaEntry[]>;
@@ -440,14 +478,15 @@ interface RawPayload {
 }
 
 export function unpackDataset(raw: RawPayload): BancoDataset {
-  const { ciclos, cursos, asigs, unidades, tipos } = raw.dict;
+  const { ciclos, cursos, asigs, unidades, tipos, fuentes } = raw.dict;
   const materials: MaterialItem[] = raw.materials.map((row) => {
-    const [id, driveId, name, kind, folderId, anio, ci, cui, ai, el, ui, ti, oas, extracto] = row;
+    const [id, driveId, name, kind, folderId, anio, ci, cui, ai, el, ui, ti, oas, extracto, fi] = row;
     const ciclo = ciclos[ci] || "";
     const curso = cursos[cui] || "";
     const asignatura = asigs[ai] || "";
     const unidad = unidades[ui] || "";
     const tipo = tipos[ti] || "";
+    const origen = (fuentes && typeof fi === "number" ? fuentes[fi] : "") || "Docentes Colegio";
     const drivePreviewUrl = `https://drive.google.com/file/d/${driveId}/preview`;
     const downloadUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
     let driveUrl = `https://drive.google.com/file/d/${driveId}/view`;
@@ -464,6 +503,7 @@ export function unpackDataset(raw: RawPayload): BancoDataset {
       driveUrl = `https://docs.google.com/spreadsheets/d/${driveId}/edit?rtpof=true&sd=true`;
     }
 
+    const scopeToken = isExternalSource(origen) ? "externo organizacion" : "propio colegio";
     return {
       id,
       driveId,
@@ -477,6 +517,7 @@ export function unpackDataset(raw: RawPayload): BancoDataset {
       esElectivo: el === 1,
       unidad,
       tipo,
+      origen,
       oas,
       extracto,
       driveUrl,
@@ -484,7 +525,7 @@ export function unpackDataset(raw: RawPayload): BancoDataset {
       drivePreviewUrl,
       docsEditPreviewUrl,
       downloadUrl,
-      searchText: normText(`${name} ${curso} ${asignatura} ${unidad} ${tipo} ${oas.join(" ")} ${extracto} ${id}`),
+      searchText: normText(`${name} ${curso} ${asignatura} ${unidad} ${tipo} ${origen} ${scopeToken} ${oas.join(" ")} ${extracto} ${id}`),
     };
   });
 

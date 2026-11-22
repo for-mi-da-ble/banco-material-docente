@@ -956,6 +956,48 @@ a:hover {
   border-color: #c7d2fe;
 }
 
+/* Etiquetas de origen / autoría del material */
+.badge-src-school {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+.badge-src-twinkl {
+  background: #ecfeff;
+  color: #0e7490;
+  border-color: #a5f3fc;
+}
+.badge-src-ziemax {
+  background: #f5f3ff;
+  color: #5b21b6;
+  border-color: #ddd6fe;
+}
+.badge-src-minisaberes {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+.badge-src-mineduc {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.badge-src-editorial {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+.badge-src-preu {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+.badge-src-ext {
+  background: #fdf4ff;
+  color: #86198f;
+  border-color: #f0abfc;
+}
+
 .std-banner-strip {
   margin-top: 10px;
   padding: 10px 12px;

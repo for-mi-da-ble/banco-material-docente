@@ -16,6 +16,7 @@ import {
   BASALES_3M_4M,
   buildOaGuideBlueprint,
   CICLO_ORDER,
+  isExternalSource,
   sortCursos,
   type BancoDataset,
   type MaterialItem,
@@ -66,6 +67,7 @@ export default function PlannerBoard({
 }: PlannerBoardProps) {
   const [tipoFilter, setTipoFilter] = useState("");
   const [anioFilter, setAnioFilter] = useState("");
+  const [origenFilter, setOrigenFilter] = useState("");
   const [oaFilter, setOaFilter] = useState("");
   const [localQ, setLocalQ] = useState("");
   const [expandedOaKey, setExpandedOaKey] = useState<string | null>(null);
@@ -192,18 +194,36 @@ export default function PlannerBoard({
     return ["Todas", "Unidad 1", "Unidad 2", "Unidad 3", "Unidad 4"];
   }, [isTransversal, isProfesores, catalogUnitsForSubject]);
 
-  // Materiales visibles tras filtrar unidad, tipo, año, OA y texto
+  // Materiales visibles tras filtrar unidad, tipo, origen, año, OA y texto
   const visibleMaterials = useMemo(() => {
     const q = localQ.trim().toLowerCase();
     return subjectMaterials.filter((m) => {
       if (selectedUnit && selectedUnit !== "Todas" && m.unidad !== selectedUnit) return false;
       if (tipoFilter && m.tipo !== tipoFilter) return false;
+      if (origenFilter === "__EXT__") {
+        if (!isExternalSource(m.origen)) return false;
+      } else if (origenFilter && m.origen !== origenFilter) {
+        return false;
+      }
       if (anioFilter && String(m.anio) !== anioFilter) return false;
       if (oaFilter && !m.oas.includes(oaFilter)) return false;
       if (q && !m.searchText.includes(q)) return false;
       return true;
     });
-  }, [subjectMaterials, selectedUnit, tipoFilter, anioFilter, oaFilter, localQ]);
+  }, [subjectMaterials, selectedUnit, tipoFilter, origenFilter, anioFilter, oaFilter, localQ]);
+
+  // Orígenes presentes en la selección actual
+  const origenesAvailable = useMemo(() => {
+    const set = new Set<string>();
+    let hasExt = false;
+    for (const m of subjectMaterials) {
+      if (selectedUnit === "Todas" || m.unidad === selectedUnit) {
+        set.add(m.origen);
+        if (isExternalSource(m.origen)) hasExt = true;
+      }
+    }
+    return { list: Array.from(set).sort((a, b) => a.localeCompare(b, "es")), hasExt };
+  }, [subjectMaterials, selectedUnit]);
 
   // Tipos disponibles en la selección actual
   const tiposAvailable = useMemo(() => {
@@ -471,6 +491,27 @@ export default function PlannerBoard({
               onChange={(e) => setLocalQ(e.target.value)}
             />
           </div>
+          {origenesAvailable.list.length > 1 && (
+            <select
+              className="select"
+              style={{ width: 170 }}
+              value={origenFilter}
+              onChange={(e) => setOrigenFilter(e.target.value)}
+              aria-label="Filtrar por origen"
+            >
+              <option value="">Origen: Todos</option>
+              <option value="Docentes Colegio">Docentes Colegio</option>
+              {origenesAvailable.hasExt && <option value="__EXT__">Solo Externos</option>}
+              {origenesAvailable.list
+                .filter((o) => o !== "Docentes Colegio")
+                .map((o) => (
+                  <option key={o} value={o}>
+                    ↳ {o}
+                  </option>
+                ))}
+            </select>
+          )}
+
           <select
             className="select"
             style={{ width: 110 }}
@@ -745,6 +786,7 @@ export default function PlannerBoard({
             onClick={() => {
               onSelectUnit(isTransversal ? "Transversal" : "Todas");
               setTipoFilter("");
+              setOrigenFilter("");
               setOaFilter("");
               setAnioFilter("");
               setLocalQ("");

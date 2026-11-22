@@ -1,6 +1,6 @@
 import React from "react";
-import { ArrowRightLeft, BookmarkCheck, BookmarkPlus, ExternalLink, Eye, FileSpreadsheet, FileText, Presentation } from "lucide-react";
-import type { FileKind, MaterialItem } from "../types";
+import { ArrowRightLeft, BookmarkCheck, BookmarkPlus, ExternalLink, Eye, FileSpreadsheet, FileText, Globe, Presentation, School } from "lucide-react";
+import { getSourceBadgeClass, isExternalSource, type FileKind, type MaterialItem } from "../types";
 
 interface MaterialCardProps {
   material: MaterialItem;
@@ -37,6 +37,7 @@ export default function MaterialCard({
   onClickOa,
   showCourseBadge = false,
 }: MaterialCardProps) {
+  const external = isExternalSource(material.origen);
   return (
     <article className={`mat-card ${isPlanned ? "planned" : ""}`}>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -46,6 +47,17 @@ export default function MaterialCard({
               <KindIcon kind={material.kind} /> {KIND_LABELS[material.kind]}
             </span>
             <span className="badge badge-navy">{material.tipo}</span>
+            <span
+              className={`badge ${getSourceBadgeClass(material.origen)}`}
+              title={
+                external
+                  ? `Material externo: ${material.origen}`
+                  : "Material elaborado por docentes del Colegio Marina de Chile"
+              }
+            >
+              {external ? <Globe size={11} /> : <School size={11} />}
+              {material.origen}
+            </span>
             {isRelocated && (
               <span className="badge badge-warn" title="Reubicado visualmente (pendiente sincronizar en Drive)">
                 Reubicado

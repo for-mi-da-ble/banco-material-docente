@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ArrowRightLeft, BookmarkCheck, BookmarkPlus, ExternalLink, Eye, LayoutGrid, List, RotateCcw, Search } from "lucide-react";
-import { CICLO_ORDER, normText, sortCursos, type BancoDataset, type MaterialItem } from "../types";
+import { CICLO_ORDER, FUENTE_ORDER, getSourceBadgeClass, isExternalSource, normText, sortCursos, type BancoDataset, type MaterialItem } from "../types";
 import MaterialCard from "./MaterialCard";
 
 interface VisualSearchProps {
@@ -26,6 +26,7 @@ export default function VisualSearch({
   const [asig, setAsig] = useState("");
   const [unidad, setUnidad] = useState("");
   const [tipo, setTipo] = useState("");
+  const [origen, setOrigen] = useState("");
   const [anio, setAnio] = useState("");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const [page, setPage] = useState(1);
@@ -52,6 +53,16 @@ export default function VisualSearch({
     [dataset.materials],
   );
 
+  const origenCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    let extTotal = 0;
+    for (const m of dataset.materials) {
+      map.set(m.origen, (map.get(m.origen) || 0) + 1);
+      if (isExternalSource(m.origen)) extTotal++;
+    }
+    return { map, extTotal };
+  }, [dataset.materials]);
+
   const filtered = useMemo(() => {
     const tokens = normText(q).split(/\s+/).filter(Boolean);
     return dataset.materials.filter((m) => {
@@ -60,13 +71,18 @@ export default function VisualSearch({
       if (asig && m.asignatura !== asig) return false;
       if (unidad && m.unidad !== unidad) return false;
       if (tipo && m.tipo !== tipo) return false;
+      if (origen === "__EXT__") {
+        if (!isExternalSource(m.origen)) return false;
+      } else if (origen && m.origen !== origen) {
+        return false;
+      }
       if (anio && String(m.anio) !== anio) return false;
       for (const tok of tokens) {
         if (!m.searchText.includes(tok)) return false;
       }
       return true;
     });
-  }, [dataset.materials, q, ciclo, curso, asig, unidad, tipo, anio]);
+  }, [dataset.materials, q, ciclo, curso, asig, unidad, tipo, origen, anio]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -79,6 +95,7 @@ export default function VisualSearch({
     setAsig("");
     setUnidad("");
     setTipo("");
+    setOrigen("");
     setAnio("");
     setPage(1);
   };
@@ -125,7 +142,7 @@ export default function VisualSearch({
               }}
             />
           </div>
-          {(q || ciclo || curso || asig || unidad || tipo || anio) && (
+          {(q || ciclo || curso || asig || unidad || tipo || origen || anio) && (
             <button type="button" className="btn btn-sm" onClick={reset}>
               <RotateCcw size={13} /> Limpiar
             </button>
@@ -210,6 +227,29 @@ export default function VisualSearch({
 
           <select
             className="select"
+            value={origen}
+            onChange={(e) => {
+              setOrigen(e.target.value);
+              setPage(1);
+            }}
+            aria-label="Filtrar por origen del material"
+          >
+            <option value="">Origen: Todos</option>
+            <option value="Docentes Colegio">
+              Docentes Colegio ({(origenCounts.map.get("Docentes Colegio") || 0).toLocaleString("es-CL")})
+            </option>
+            <option value="__EXT__">
+              Solo Externos ({origenCounts.extTotal.toLocaleString("es-CL")})
+            </option>
+            {FUENTE_ORDER.filter((f) => f !== "Docentes Colegio" && (origenCounts.map.get(f) || 0) > 0).map((f) => (
+              <option key={f} value={f}>
+                ↳ {f} ({origenCounts.map.get(f) || 0})
+              </option>
+            ))}
+          </select>
+
+          <select
+            className="select"
             value={anio}
             onChange={(e) => {
               setAnio(e.target.value);
@@ -251,7 +291,7 @@ export default function VisualSearch({
                   <th>Archivo y encabezado</th>
                   <th>Curso / Asignatura</th>
                   <th>Unidad / OA</th>
-                  <th>Tipo / Año</th>
+                  <th>Tipo / Origen / Año</th>
                   <th style={{ textAlign: "right" }}>Acciones</th>
                 </tr>
               </thead>
@@ -285,7 +325,10 @@ export default function VisualSearch({
                         </div>
                       </td>
                       <td>
-                        <span className="badge badge-navy">{m.tipo}</span>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                          <span className="badge badge-navy">{m.tipo}</span>
+                          <span className={`badge ${getSourceBadgeClass(m.origen)}`}>{m.origen}</span>
+                        </div>
                         <div className="mono tabular" style={{ fontSize: 11.5, color: "var(--ink-500)", marginTop: 3 }}>
                           {m.anio}
                         </div>
