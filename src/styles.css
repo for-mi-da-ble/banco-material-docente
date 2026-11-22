@@ -962,6 +962,16 @@ a:hover {
   color: #065f46;
   border-color: #a7f3d0;
 }
+.badge-src-lirmi {
+  background: #f0fdfa;
+  color: #0f766e;
+  border-color: #99f6e4;
+}
+.badge-src-aptus {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
 .badge-src-twinkl {
   background: #ecfeff;
   color: #0e7490;

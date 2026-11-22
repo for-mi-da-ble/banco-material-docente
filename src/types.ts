@@ -425,6 +425,8 @@ export function sortCursos(cursos: string[]): string[] {
 
 export const FUENTE_ORDER = [
   "Docentes Colegio",
+  "Lirmi",
+  "Aptus",
   "Twinkl",
   "Ziemax",
   "Minisaberes",
@@ -442,6 +444,10 @@ export function getSourceBadgeClass(origen: string): string {
   switch (origen) {
     case "Docentes Colegio":
       return "badge-src-school";
+    case "Lirmi":
+      return "badge-src-lirmi";
+    case "Aptus":
+      return "badge-src-aptus";
     case "Twinkl":
       return "badge-src-twinkl";
     case "Ziemax":
