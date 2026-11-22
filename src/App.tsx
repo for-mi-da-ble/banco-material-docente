@@ -313,7 +313,7 @@ export default function App() {
           Cargando Banco de Material Docente — Colegio Marina de Chile...
         </div>
         <p style={{ color: "var(--ink-500)", fontSize: 13 }}>
-          Preparando 4.023 recursos y 2.663 Objetivos de Aprendizaje MINEDUC
+          Preparando 3.938 recursos y 2.663 Objetivos de Aprendizaje MINEDUC
         </p>
       </div>
     );
