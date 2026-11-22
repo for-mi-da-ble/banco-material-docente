@@ -39,8 +39,10 @@ export default function CoveragePrepView({
     [dataset.coverage, ciclo, curso, onlyGaps],
   );
 
+  const curricularCycles = ["1° Ciclo", "2° Ciclo", "Enseñanza Media"] as const;
+
   const cycleSummary = useMemo(() => {
-    return CICLO_ORDER.map((c) => {
+    return curricularCycles.map((c) => {
       const rows = dataset.coverage.filter((r) => r.ciclo === c);
       const tot = rows.reduce((a, r) => a + r.tot, 0);
       const cov = rows.reduce((a, r) => a + r.cov, 0);

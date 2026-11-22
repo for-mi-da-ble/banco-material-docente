@@ -105,6 +105,9 @@ export default function RelocateModal({
         ) || null
       );
     }
+    if (curso === "Profesores") {
+      return dataset.folders.find((f) => f.curso === "Profesores" && f.asig === asig) || null;
+    }
     return (
       dataset.folders.find(
         (f) => f.ciclo === ciclo && f.curso === curso && f.asig === asig && f.unidad === unidad,
@@ -120,6 +123,8 @@ export default function RelocateModal({
   const targetRuta =
     curso === "Transversal"
       ? `${root}/${transversal}`
+      : curso === "Profesores"
+      ? `${root}/Profesores/${asig}`
       : `${root}/${curso}/${asig}/${unidad}`;
 
   const isSameLocation =

@@ -117,8 +117,11 @@ export default function PlannerBoard({
   }, [subjectMaterials]);
 
   const isTransversal = selectedCurso === "Transversal";
+  const isProfesores = selectedCurso === "Profesores";
   const unitTabs = isTransversal
     ? ["Transversal"]
+    : isProfesores
+    ? ["Todas"]
     : ["Todas", "Unidad 1", "Unidad 2", "Unidad 3", "Unidad 4"];
 
   // Materiales visibles tras filtrar unidad, tipo, año, OA y texto
@@ -145,7 +148,7 @@ export default function PlannerBoard({
 
   // OAs oficiales MINEDUC para esta (Curso, Asignatura, Unidad)
   const unitOaCards = useMemo(() => {
-    if (isTransversal) return [];
+    if (isTransversal || isProfesores) return [];
     const lookupUnits =
       selectedCurso === "Electivos"
         ? ["General"]
@@ -179,13 +182,19 @@ export default function PlannerBoard({
       }
     }
     return list;
-  }, [dataset.oaCatalog, selectedCurso, selectedAsig, selectedUnit, subjectMaterials, isTransversal]);
+  }, [dataset.oaCatalog, selectedCurso, selectedAsig, selectedUnit, subjectMaterials, isTransversal, isProfesores]);
 
   // Carpeta real en Google Drive para la unidad seleccionada
   const activeDriveFolder = useMemo(() => {
     if (isTransversal) {
       return dataset.folders.find(
         (f) => (!selectedCiclo || f.ciclo === selectedCiclo) && f.ruta.toLowerCase().includes("transversal"),
+      );
+    }
+    if (isProfesores) {
+      return (
+        dataset.folders.find((f) => f.curso === "Profesores" && f.asig === selectedAsig) ||
+        dataset.folders.find((f) => f.curso === "Profesores")
       );
     }
     if (selectedUnit !== "Todas") {
@@ -196,7 +205,7 @@ export default function PlannerBoard({
     return dataset.folders.find(
       (f) => f.curso === selectedCurso && f.asig === selectedAsig && !f.unidad,
     );
-  }, [dataset.folders, selectedCiclo, selectedCurso, selectedAsig, selectedUnit, isTransversal]);
+  }, [dataset.folders, selectedCiclo, selectedCurso, selectedAsig, selectedUnit, isTransversal, isProfesores]);
 
   return (
     <section aria-label="Planificador visual por curso y unidad">

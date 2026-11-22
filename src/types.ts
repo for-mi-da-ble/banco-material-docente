@@ -113,12 +113,13 @@ export interface RelocationRequest {
   createdAt: string;
 }
 
-export const CICLO_ORDER = ["1° Ciclo", "2° Ciclo", "Enseñanza Media"] as const;
+export const CICLO_ORDER = ["1° Ciclo", "2° Ciclo", "Enseñanza Media", "Profesores"] as const;
 
 export const CURSOS_POR_CICLO: Record<string, string[]> = {
   "1° Ciclo": ["Kínder", "1° Básico", "2° Básico", "3° Básico", "4° Básico", "Transversal"],
   "2° Ciclo": ["5° Básico", "6° Básico", "7° Básico", "8° Básico", "Transversal"],
   "Enseñanza Media": ["1° Medio", "2° Medio", "3° Medio", "4° Medio", "Electivos", "Transversal"],
+  Profesores: ["Profesores"],
 };
 
 export const ELECTIVOS_HC: string[] = [
@@ -167,6 +168,7 @@ export const CURSO_ORDER = [
   "4° Medio",
   "Electivos",
   "Transversal",
+  "Profesores",
 ];
 
 export const BASALES_3M_4M = new Set([
@@ -183,6 +185,9 @@ export const BASALES_3M_4M = new Set([
 ]);
 
 export function getAllowedSubjectsForCourse(curso: string): string[] {
+  if (curso === "Profesores") {
+    return ["Evaluación Docente", "Portafolio y Formación Docente", "Plan Lector y Mediación"];
+  }
   if (curso === "Transversal") return ["Gestión y Transversal"];
   if (curso === "Electivos") return ELECTIVOS_HC;
   if (curso === "3° Medio" || curso === "4° Medio") {

@@ -262,7 +262,7 @@ export default function App() {
         ),
       ).sort((a, b) => a.localeCompare(b, "es"));
       setSelectedAsig(asigs[0] || "");
-      setSelectedUnit(nextCurso === "Transversal" ? "Transversal" : "Unidad 1");
+      setSelectedUnit(nextCurso === "Transversal" ? "Transversal" : nextCurso === "Profesores" ? "Todas" : "Unidad 1");
     },
     [dataset],
   );
