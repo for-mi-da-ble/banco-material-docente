@@ -1066,6 +1066,107 @@ a:hover {
   border-top: 0;
 }
 
+/* Plan Anual por Estándares (independiente de unidades) */
+.annual-eje-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+  gap: 8px;
+}
+
+.annual-eje-card {
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: #ffffff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+}
+
+.annual-eje-card:hover {
+  border-color: var(--navy-700);
+  background: var(--navy-50);
+}
+
+.annual-eje-card.active {
+  background: var(--navy-800);
+  border-color: var(--navy-800);
+  color: #ffffff;
+  box-shadow: var(--shadow-sm);
+}
+
+.annual-eje-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: inherit;
+}
+
+.annual-eje-meta {
+  font-size: 11px;
+  margin-top: 3px;
+  color: var(--ink-500);
+}
+
+.annual-eje-card.active .annual-eje-meta {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.annual-eje-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 7px;
+  border-bottom: 2px solid var(--navy-100);
+}
+
+.annual-eje-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--navy-800);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.annual-std-card {
+  border-left: 4px solid var(--navy-800);
+}
+
+.annual-oa-container {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid var(--border);
+}
+
+.annual-oa-container-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--navy-800);
+  margin-bottom: 8px;
+}
+
+.annual-oa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.annual-oa-row {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-warm);
+  border: 1px solid var(--border);
+}
+
 /* Responsive */
 @media (max-width: 980px) {
   .modal-body-split {

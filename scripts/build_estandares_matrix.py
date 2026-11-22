@@ -29,6 +29,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 BANCO_JSON = REPO_ROOT / "public" / "data" / "banco-docente.json"
 OUT_JSON = REPO_ROOT / "public" / "data" / "estandares-oa.json"
 OUT_CSV = REPO_ROOT / "public" / "data" / "matriz_estandares_oa_unidad.csv"
+OUT_ANNUAL_CSV = REPO_ROOT / "public" / "data" / "plan_anual_por_estandares.csv"
 OUT_XLSX = Path("/tmp/simce_estandares/Matriz_Estandares_SIMCE_OA_por_Unidad.xlsx")
 
 CICLO_BY_CURSO = {
@@ -252,6 +253,90 @@ def main() -> None:
     assert not missing_oas, f"Unmapped target OAs found:\n" + "\n".join(missing_oas)
     assert not unused, f"Orphan standard indicators never mapped:\n" + "\n".join(unused)
 
+    # Build Annual Standard-First rows (1 row per unique Course x Subject x Standard, independent of units)
+    annual_std_rows: list[dict] = []
+    for curso, asig, doc_id, vinculo, nota_vinculo in COURSE_DOC_LINKS:
+        doc = docs_by_id[doc_id]
+        ciclo = CICLO_BY_CURSO[curso]
+        ca_key = f"{curso}|{asig}"
+        oa_map = OA_STANDARD_MAP[ca_key]
+        units = sort_units(
+            [k.split("|")[2] for k in oa_catalog if k.startswith(f"{curso}|{asig}|")]
+        )
+        # Collect unique OAs for this course-subject across all units
+        oa_info_by_code: dict[str, dict] = {}
+        for u in units:
+            u_key = f"{curso}|{asig}|{u}"
+            cov = coverage_index.get((curso, asig, u))
+            cov_oa_map = {code: (is_cov, cnt) for code, is_cov, cnt in (cov["oas"] if cov else [])}
+            for e in oa_catalog[u_key]:
+                oa_c = e["oa"]
+                if oa_c not in oa_info_by_code:
+                    oa_info_by_code[oa_c] = {
+                        "oa": oa_c,
+                        "eje": e["eje"],
+                        "desc": e["desc"],
+                        "units": [],
+                        "covered": False,
+                        "mats": 0,
+                    }
+                if u not in oa_info_by_code[oa_c]["units"]:
+                    oa_info_by_code[oa_c]["units"].append(u)
+                is_cov, cnt = cov_oa_map.get(oa_c, (0, 0))
+                if is_cov:
+                    oa_info_by_code[oa_c]["covered"] = True
+                oa_info_by_code[oa_c]["mats"] += cnt
+
+        for ind in doc["indicadores"]:
+            code = ind["code"]
+            involved_oas = sorted(
+                [oa_c for oa_c, (codes, _sug) in oa_map.items() if code in codes and oa_c in oa_info_by_code],
+                key=oa_sort_key,
+            )
+            if not involved_oas:
+                continue
+            ref_units: list[str] = []
+            oa_details: list[str] = []
+            oa_sugs: list[str] = []
+            cov_count = 0
+            for oa_c in involved_oas:
+                info = oa_info_by_code[oa_c]
+                if info["covered"]:
+                    cov_count += 1
+                for u in info["units"]:
+                    short_u = "Transversal" if u.startswith("Transversal") else u
+                    if short_u not in ref_units:
+                        ref_units.append(short_u)
+                short_desc = info["desc"].strip()
+                if len(short_desc) > 220:
+                    short_desc = short_desc[:217].rstrip() + "..."
+                oa_details.append(f"{oa_c} ({info['eje']}): {short_desc}")
+                sug = oa_map[oa_c][1]
+                oa_sugs.append(f"{oa_c}: {sug}")
+
+            annual_std_rows.append(
+                {
+                    "ciclo": ciclo,
+                    "curso": curso,
+                    "asignatura": asig,
+                    "doc_estandar": doc["fileName"],
+                    "tipo_vinculo": vinculo,
+                    "eje_estandar": ind["eje"],
+                    "codigo_estandar": code,
+                    "tema_estandar": ind["tema"],
+                    "nivel_minimo": ind["nivelMinimo"],
+                    "req_elemental": ind["elemental"] or "No exigido como mínimo en Elemental (andamiaje previo).",
+                    "req_adecuado": ind["adecuado"] or "Evaluado en Expectativa Curricular / Sobre Nivel Adecuado.",
+                    "expectativa_avanzada": ind["avanzado"] or "Consolidar dominio autónomo en situaciones variadas o no rutinarias.",
+                    "n_oas": len(involved_oas),
+                    "oas_codigos": ", ".join(involved_oas),
+                    "oas_detalle": "\n".join(oa_details),
+                    "unidades_ref": ", ".join(ref_units),
+                    "cobertura_oas": f"{cov_count}/{len(involved_oas)} OA con material",
+                    "orientaciones": "\n".join(oa_sugs),
+                }
+            )
+
     # Build JSON for web app
     payload = {
         "meta": {
@@ -266,6 +351,7 @@ def main() -> None:
                 "oas_unidad_vinculados": total_oa_unit_mapped,
                 "oas_unidad_otro_eje": total_oa_unit_non_simce,
                 "filas_cruce_oa_estandar": len(detailed_rows),
+                "estandares_anuales_curso": len(annual_std_rows),
             },
         },
         "docs": STANDARDS_DOCS,
@@ -324,20 +410,70 @@ def main() -> None:
         for row in detailed_rows:
             writer.writerow([row[k] for k in csv_fields])
 
+    # Build Annual Standard-First CSV (independent of units)
+    annual_fields = [
+        "ciclo",
+        "curso",
+        "asignatura",
+        "doc_estandar",
+        "tipo_vinculo",
+        "eje_estandar",
+        "codigo_estandar",
+        "tema_estandar",
+        "nivel_minimo",
+        "n_oas",
+        "oas_codigos",
+        "oas_detalle",
+        "unidades_ref",
+        "cobertura_oas",
+        "req_elemental",
+        "req_adecuado",
+        "expectativa_avanzada",
+        "orientaciones",
+    ]
+    annual_headers = {
+        "ciclo": "Ciclo",
+        "curso": "Curso",
+        "asignatura": "Asignatura",
+        "doc_estandar": "Documento Estándares",
+        "tipo_vinculo": "Tipo de Vínculo",
+        "eje_estandar": "Eje / Habilidad SIMCE",
+        "codigo_estandar": "Código Estándar",
+        "tema_estandar": "Tema del Estándar",
+        "nivel_minimo": "Nivel Mínimo Exigido",
+        "n_oas": "N° OA Involucrados",
+        "oas_codigos": "OA Involucrados",
+        "oas_detalle": "Detalle de OA Involucrados (MINEDUC)",
+        "unidades_ref": "Unidades de Referencia (informativo)",
+        "cobertura_oas": "Cobertura Banco Material",
+        "req_elemental": "Requisito Mínimo Elemental (Inicio / Nivelación)",
+        "req_adecuado": "Requisito Mínimo Adecuado (Meta Guía / Evaluación)",
+        "expectativa_avanzada": "Expectativa Curricular / Sobre Adecuado (Desafío)",
+        "orientaciones": "Orientaciones por OA para Guías",
+    }
+    with OUT_ANNUAL_CSV.open("w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([annual_headers[k] for k in annual_fields])
+        for row in annual_std_rows:
+            writer.writerow([row[k] for k in annual_fields])
+
     # Build formatted Excel workbook
-    build_excel(unit_summary_rows, detailed_rows, STANDARDS_DOCS, payload["meta"])
+    build_excel(annual_std_rows, unit_summary_rows, detailed_rows, STANDARDS_DOCS, payload["meta"])
 
     print("SUCCESS!")
     print(f"  Docs: {len(STANDARDS_DOCS)} | Indicators: {len(ind_by_code)} (100% mapped, 0 orphans)")
     print(f"  Course-Subjects: {len(course_links_out)} | Units: {len(unit_links_out)}")
+    print(f"  Annual standard-first rows: {len(annual_std_rows)}")
     print(f"  OA-Unit entries mapped: {total_oa_unit_mapped} (+ {total_oa_unit_non_simce} Escritura/Oral non-SIMCE Lectura)")
     print(f"  Detailed OA x Standard rows: {len(detailed_rows)}")
-    print(f"  JSON: {OUT_JSON} ({OUT_JSON.stat().st_size / 1024:.1f} KB)")
-    print(f"  CSV:  {OUT_CSV} ({OUT_CSV.stat().st_size / 1024:.1f} KB)")
-    print(f"  XLSX: {OUT_XLSX} ({OUT_XLSX.stat().st_size / 1024:.1f} KB)")
+    print(f"  JSON:       {OUT_JSON} ({OUT_JSON.stat().st_size / 1024:.1f} KB)")
+    print(f"  CSV (OA):   {OUT_CSV} ({OUT_CSV.stat().st_size / 1024:.1f} KB)")
+    print(f"  CSV (Anual):{OUT_ANNUAL_CSV} ({OUT_ANNUAL_CSV.stat().st_size / 1024:.1f} KB)")
+    print(f"  XLSX:       {OUT_XLSX} ({OUT_XLSX.stat().st_size / 1024:.1f} KB)")
 
 
 def build_excel(
+    annual_std_rows: list[dict],
     unit_summary_rows: list[dict],
     detailed_rows: list[dict],
     docs: list[dict],
@@ -384,9 +520,82 @@ def build_excel(
         ws.freeze_panes = "A5"
         ws.auto_filter.ref = f"A4:{get_column_letter(len(headers))}4"
 
+    # ---------------- SHEET 0 (PRIMERA PESTAÑA): Plan Anual por Estándares ----------------
+    ws0 = wb.active
+    ws0.title = "Plan Anual por Estándares"
+    h0 = [
+        "Ciclo",
+        "Curso",
+        "Asignatura",
+        "Documento Estándares",
+        "Tipo de Vínculo",
+        "Eje / Habilidad SIMCE",
+        "Código Estándar",
+        "Tema del Estándar",
+        "Nivel Mínimo Exigido",
+        "N° OA",
+        "OA Involucrados",
+        "Detalle de OA Involucrados (MINEDUC)",
+        "Unidades Ref. (informativo)",
+        "Cobertura Banco Material",
+        "Requisito Mínimo Elemental (Inicio / Nivelación)",
+        "Requisito Mínimo Adecuado (Meta Guía / Evaluación)",
+        "Expectativa Curricular / Sobre Adecuado (Desafío)",
+        "Orientaciones por OA para Guías",
+    ]
+    w0 = [14, 11, 26, 17, 20, 24, 14, 28, 22, 9, 22, 52, 22, 22, 42, 44, 42, 46]
+    style_sheet_header(
+        ws0,
+        "Plan Anual Organizado por Estándares de Aprendizaje (Independiente de Unidades)",
+        f"Cada fila representa un estándar único del año por curso/asignatura ({len(annual_std_rows)} estándares-año) indicando todos los OA MINEDUC que involucra, sin dividir el estándar en cada OA. Generado: {meta['generated_at']}.",
+        h0,
+        w0,
+    )
+    for r_idx, row in enumerate(annual_std_rows, 5):
+        vals = [
+            row["ciclo"],
+            row["curso"],
+            row["asignatura"],
+            row["doc_estandar"],
+            row["tipo_vinculo"],
+            row["eje_estandar"],
+            row["codigo_estandar"],
+            row["tema_estandar"],
+            row["nivel_minimo"],
+            row["n_oas"],
+            row["oas_codigos"],
+            row["oas_detalle"],
+            row["unidades_ref"],
+            row["cobertura_oas"],
+            row["req_elemental"],
+            row["req_adecuado"],
+            row["expectativa_avanzada"],
+            row["orientaciones"],
+        ]
+        for c_idx, val in enumerate(vals, 1):
+            cell = ws0.cell(row=r_idx, column=c_idx, value=val)
+            cell.font = bold_font if c_idx in (2, 7, 11) else body_font
+            cell.border = border
+            cell.alignment = Alignment(
+                vertical="top",
+                horizontal="center" if c_idx == 10 else "left",
+                wrap_text=True,
+            )
+            if c_idx == 5:
+                cell.fill = ok_fill if val == "Directo" else (sub_fill if "Tramo" in str(val) else warm_fill)
+            elif c_idx == 9:
+                if "Expectativa" in str(val):
+                    cell.fill = adv_fill
+                elif val == "Adecuado":
+                    cell.fill = sub_fill
+                else:
+                    cell.fill = ok_fill
+            elif r_idx % 2 == 1:
+                cell.fill = warm_fill
+    ws0.auto_filter.ref = f"A4:{get_column_letter(len(h0))}{len(annual_std_rows) + 4}"
+
     # ---------------- SHEET 1: Resumen por Curso y Unidad ----------------
-    ws1 = wb.active
-    ws1.title = "Resumen por Curso y Unidad"
+    ws1 = wb.create_sheet("Resumen por Curso y Unidad")
     h1 = [
         "Ciclo",
         "Curso",

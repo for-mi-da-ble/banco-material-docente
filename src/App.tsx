@@ -366,7 +366,10 @@ export default function App() {
             <button
               type="button"
               className={`nav-tab ${tab === "standards" ? "active" : ""}`}
-              onClick={() => setTab("standards")}
+              onClick={() => {
+                setStdJumpTarget(null);
+                setTab("standards");
+              }}
             >
               <Award size={15} /> Estándares SIMCE
             </button>

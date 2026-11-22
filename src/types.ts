@@ -144,11 +144,56 @@ export interface StandardsDataset {
       oas_unidad_vinculados: number;
       oas_unidad_otro_eje: number;
       filas_cruce_oa_estandar: number;
+      estandares_anuales_curso?: number;
     };
   };
   docs: StandardDoc[];
   courseLinks: CourseStandardLink[];
   unitLinks: Record<string, UnitStandardLink>;
+}
+
+export function buildStandardAnnualBlueprint(params: {
+  curso: string;
+  asignatura: string;
+  docTitle: string;
+  vinculo: string;
+  indicator: StandardIndicator;
+  oas: Array<{
+    oa: string;
+    eje: string;
+    desc: string;
+    units: string[];
+    sugerencia: string;
+  }>;
+}): string {
+  const { indicator } = params;
+  const lines: string[] = [
+    `ESTÁNDAR DE APRENDIZAJE [${indicator.code}] — ${params.curso} · ${params.asignatura} (Plan Anual)`,
+    `Eje / Habilidad SIMCE: ${indicator.eje} · Tema: ${indicator.tema}`,
+    `Referente oficial: ${params.docTitle} (${params.vinculo})`,
+    "",
+    "PROGRESIÓN DE NIVELES DEL ESTÁNDAR:",
+  ];
+  if (indicator.elemental) {
+    lines.push(`• Nivel Elemental (Inicio / Nivelación): ${indicator.elemental}`);
+  }
+  if (indicator.adecuado) {
+    lines.push(`• Nivel Adecuado (Desarrollo / Meta): ${indicator.adecuado}`);
+  }
+  if (indicator.avanzado) {
+    lines.push(`• Sobre Adecuado / Expectativa Curricular (Desafío): ${indicator.avanzado}`);
+  }
+  lines.push("");
+  lines.push(`OBJETIVOS DE APRENDIZAJE (OA) QUE INVOLUCRA ESTE ESTÁNDAR (${params.oas.length}):`);
+  for (const item of params.oas) {
+    const uRef = item.units.map((u) => (u.startsWith("Transversal") ? "Transversal" : u)).join(", ");
+    lines.push(`\n• ${item.oa} (${item.eje}${uRef ? ` · Ref. ${uRef}` : ""}):`);
+    lines.push(`  ${item.desc}`);
+    if (item.sugerencia) {
+      lines.push(`  → Orientación para guía: ${item.sugerencia}`);
+    }
+  }
+  return lines.join("\n");
 }
 
 export function buildOaGuideBlueprint(params: {
