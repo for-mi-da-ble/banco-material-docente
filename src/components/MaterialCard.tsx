@@ -110,9 +110,14 @@ export default function MaterialCard({
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-sm"
-          title="Abrir archivo completo en Google Drive"
+          title={
+            material.kind === "doc"
+              ? "Abrir documento completo en Google Docs (todas las páginas)"
+              : "Abrir archivo completo en Google Drive"
+          }
         >
-          <ExternalLink size={12} /> Drive
+          <ExternalLink size={12} />{" "}
+          {material.kind === "doc" ? "Docs" : material.kind === "ppt" ? "Slides" : material.kind === "xls" ? "Sheets" : "Drive"}
         </a>
 
         <button

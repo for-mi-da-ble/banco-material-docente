@@ -1,5 +1,5 @@
-import React from "react";
-import { ArrowRightLeft, BookmarkCheck, BookmarkPlus, Copy, ExternalLink, FolderOpen, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ArrowRightLeft, BookmarkCheck, BookmarkPlus, Copy, Download, ExternalLink, FolderOpen, X } from "lucide-react";
 import type { MaterialItem, OaEntry } from "../types";
 
 interface PreviewModalProps {
@@ -12,6 +12,8 @@ interface PreviewModalProps {
   onCopyText: (text: string, label: string) => void;
 }
 
+type ViewerMode = "docs" | "docs-edit" | "drive";
+
 export default function PreviewModal({
   material,
   oaCatalog,
@@ -21,7 +23,30 @@ export default function PreviewModal({
   onRelocate,
   onCopyText,
 }: PreviewModalProps) {
+  const [viewerMode, setViewerMode] = useState<ViewerMode>("docs");
+
+  useEffect(() => {
+    setViewerMode(material?.kind === "doc" ? "docs" : "drive");
+  }, [material?.driveId, material?.kind]);
+
   if (!material) return null;
+
+  const isWord = material.kind === "doc";
+  const openLabel =
+    material.kind === "doc"
+      ? "Abrir en Google Docs"
+      : material.kind === "ppt"
+        ? "Abrir en Slides"
+        : material.kind === "xls"
+          ? "Abrir en Sheets"
+          : "Abrir en Drive";
+
+  const iframeSrc =
+    isWord && viewerMode === "docs"
+      ? material.previewUrl
+      : isWord && viewerMode === "docs-edit" && material.docsEditPreviewUrl
+        ? material.docsEditPreviewUrl
+        : material.drivePreviewUrl;
 
   const lookupUnit = material.curso === "Electivos" ? "General" : material.unidad;
   const unitOas = oaCatalog[`${material.curso}|${material.asignatura}|${lookupUnit}`] || [];
@@ -68,7 +93,10 @@ export default function PreviewModal({
               {isPlanned ? "En mi planificación" : "Agregar a mi clase"}
             </button>
             <a href={material.driveUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm">
-              <ExternalLink size={13} /> Abrir en Drive
+              <ExternalLink size={13} /> {openLabel}
+            </a>
+            <a href={material.downloadUrl} target="_blank" rel="noopener noreferrer" className="btn btn-sm" title="Descargar archivo original completo">
+              <Download size={13} /> Descargar
             </a>
             <button type="button" className="btn btn-sm" onClick={onClose} aria-label="Cerrar vista previa">
               <X size={15} />
@@ -78,8 +106,45 @@ export default function PreviewModal({
 
         <div className="modal-body-split">
           <div className="modal-iframe-col">
+            {isWord && (
+              <div className="viewer-toolbar">
+                <div className="viewer-tabs" role="tablist" aria-label="Modo de visualización del documento Word">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={viewerMode === "docs"}
+                    className={`viewer-tab ${viewerMode === "docs" ? "active" : ""}`}
+                    onClick={() => setViewerMode("docs")}
+                  >
+                    Google Docs (todas las páginas)
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={viewerMode === "docs-edit"}
+                    className={`viewer-tab ${viewerMode === "docs-edit" ? "active" : ""}`}
+                    onClick={() => setViewerMode("docs-edit")}
+                  >
+                    Modo editor
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={viewerMode === "drive"}
+                    className={`viewer-tab ${viewerMode === "drive" ? "active" : ""}`}
+                    onClick={() => setViewerMode("drive")}
+                  >
+                    Visor Drive
+                  </button>
+                </div>
+                <span className="viewer-hint">
+                  Documento íntegro en Drive · cambia de visor si tu navegador restringe cookies
+                </span>
+              </div>
+            )}
             <iframe
-              src={material.previewUrl}
+              key={`${material.driveId}-${viewerMode}`}
+              src={iframeSrc}
               title={`Vista previa de ${material.name}`}
               allow="autoplay"
             />
@@ -94,10 +159,27 @@ export default function PreviewModal({
                 justifyContent: "space-between",
                 alignItems: "center",
                 gap: 8,
+                flexWrap: "wrap",
               }}
             >
               <span>
-                Si tu cuenta institucional no tiene sesión activa en este navegador, usa <strong>Abrir en Drive</strong>.
+                {isWord ? (
+                  <>
+                    Si ves solo la primera página o pide acceso por cookies de terceros, abre con{" "}
+                    <a href={material.driveUrl} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700 }}>
+                      {openLabel}
+                    </a>{" "}
+                    o{" "}
+                    <a href={material.downloadUrl} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 700 }}>
+                      descarga el .docx completo
+                    </a>
+                    .
+                  </>
+                ) : (
+                  <>
+                    Si tu cuenta institucional no tiene sesión activa en este navegador, usa <strong>{openLabel}</strong>.
+                  </>
+                )}
               </span>
               {material.folderId && (
                 <a

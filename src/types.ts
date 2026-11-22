@@ -17,6 +17,9 @@ export interface MaterialItem {
   extracto: string;
   driveUrl: string;
   previewUrl: string;
+  drivePreviewUrl: string;
+  docsEditPreviewUrl?: string;
+  downloadUrl: string;
   searchText: string;
 }
 
@@ -400,6 +403,22 @@ export function unpackDataset(raw: RawPayload): BancoDataset {
     const asignatura = asigs[ai] || "";
     const unidad = unidades[ui] || "";
     const tipo = tipos[ti] || "";
+    const drivePreviewUrl = `https://drive.google.com/file/d/${driveId}/preview`;
+    const downloadUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+    let driveUrl = `https://drive.google.com/file/d/${driveId}/view`;
+    let previewUrl = drivePreviewUrl;
+    let docsEditPreviewUrl: string | undefined;
+
+    if (kind === "doc") {
+      driveUrl = `https://docs.google.com/document/d/${driveId}/edit?rtpof=true&sd=true`;
+      previewUrl = `https://docs.google.com/document/d/${driveId}/preview?rtpof=true&sd=true`;
+      docsEditPreviewUrl = `https://docs.google.com/document/d/${driveId}/edit?rm=minimal&rtpof=true&sd=true`;
+    } else if (kind === "ppt") {
+      driveUrl = `https://docs.google.com/presentation/d/${driveId}/edit?rtpof=true&sd=true`;
+    } else if (kind === "xls") {
+      driveUrl = `https://docs.google.com/spreadsheets/d/${driveId}/edit?rtpof=true&sd=true`;
+    }
+
     return {
       id,
       driveId,
@@ -415,8 +434,11 @@ export function unpackDataset(raw: RawPayload): BancoDataset {
       tipo,
       oas,
       extracto,
-      driveUrl: `https://drive.google.com/file/d/${driveId}/view`,
-      previewUrl: `https://drive.google.com/file/d/${driveId}/preview`,
+      driveUrl,
+      previewUrl,
+      drivePreviewUrl,
+      docsEditPreviewUrl,
+      downloadUrl,
       searchText: normText(`${name} ${curso} ${asignatura} ${unidad} ${tipo} ${oas.join(" ")} ${extracto} ${id}`),
     };
   });
