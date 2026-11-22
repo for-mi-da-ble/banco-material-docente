@@ -15,11 +15,7 @@
  * NUNCA toca `OA por Unidad – Programas de Estudio MINEDUC`.
  */
 
-const ROOT_FOLDERS = {
-  "1° Ciclo": "1uxCuySIXgnu37QT5wEfMyFotrZ4d1TM7",
-  "2° Ciclo": "13TV0kKoAG-oKOGM0r7TvuJQTR8a8LGo2",
-  "Enseñanza Media": "1gej6pIdUI_rMatHzquPoAvs4khWxtcLi",
-};
+const UNIFIED_MATERIAL_ROOT_ID = "1xw20x9I5jbkHiRSrDEIB1PMBI3KTL_tu";
 
 function getOrCreateSubfolder_(parent, name) {
   const it = parent.getFoldersByName(name);
@@ -33,8 +29,7 @@ function resolveOrCreateTargetFolder_(to) {
       return DriveApp.getFolderById(to.targetFolderId);
     } catch (e) {}
   }
-  const rootId = ROOT_FOLDERS[to.ciclo] || ROOT_FOLDERS["Enseñanza Media"];
-  let folder = DriveApp.getFolderById(rootId);
+  let folder = DriveApp.getFolderById(UNIFIED_MATERIAL_ROOT_ID);
   const parts = String(to.targetRuta || "").split("/").slice(1);
   for (let i = 0; i < parts.length; i++) {
     if (parts[i]) folder = getOrCreateSubfolder_(folder, parts[i]);

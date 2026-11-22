@@ -52,7 +52,7 @@ export default function App() {
   const [loadError, setLoadError] = useState("");
   const [tab, setTab] = useState<ActiveTab>("planner");
 
-  const [selectedCiclo, setSelectedCiclo] = useState("Enseñanza Media");
+  const [selectedCiclo, setSelectedCiclo] = useState("");
   const [selectedCurso, setSelectedCurso] = useState("1° Medio");
   const [selectedAsig, setSelectedAsig] = useState("Matemática");
   const [selectedUnit, setSelectedUnit] = useState("Unidad 1");
@@ -248,6 +248,7 @@ export default function App() {
     (ciclo: string) => {
       setSelectedCiclo(ciclo);
       if (!dataset) return;
+      if (!ciclo) return;
       const cursos = sortCursos(
         Array.from(new Set(dataset.materials.filter((m) => m.ciclo === ciclo).map((m) => m.curso))),
       );
@@ -272,7 +273,7 @@ export default function App() {
       if (!dataset) return;
       const counts = new Map<string, number>();
       for (const m of dataset.materials) {
-        if (m.ciclo === selectedCiclo && m.curso === curso) {
+        if ((!selectedCiclo || m.ciclo === selectedCiclo) && m.curso === curso) {
           counts.set(m.asignatura, (counts.get(m.asignatura) || 0) + 1);
         }
       }
@@ -313,7 +314,7 @@ export default function App() {
           Cargando Banco de Material Docente — Colegio Marina de Chile...
         </div>
         <p style={{ color: "var(--ink-500)", fontSize: 13 }}>
-          Preparando 3.938 recursos y 2.663 Objetivos de Aprendizaje MINEDUC
+          Preparando 4.061 recursos unificados y 2.663 Objetivos de Aprendizaje MINEDUC
         </p>
       </div>
     );
@@ -327,7 +328,7 @@ export default function App() {
             <div className="brand-mark">CMC</div>
             <div>
               <div className="brand-title">Planificador y Banco Docente</div>
-              <div className="brand-sub">Colegio Marina de Chile · 1° Básico a 4° Medio + Electivos HC</div>
+              <div className="brand-sub">Colegio Marina de Chile · Carpeta Única Material/ (Kínder a 4° Medio + Electivos)</div>
             </div>
           </div>
 
@@ -377,14 +378,25 @@ export default function App() {
             </button>
           </nav>
 
-          <a
-            href={dataset.meta.sheet_bd_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="topbar-link"
-          >
-            BD Sheets <ExternalLink size={12} />
-          </a>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <a
+              href="https://drive.google.com/drive/folders/1xw20x9I5jbkHiRSrDEIB1PMBI3KTL_tu"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="topbar-link"
+              title="Abrir carpeta única Material/ en Google Drive"
+            >
+              Carpeta Material <ExternalLink size={12} />
+            </a>
+            <a
+              href={dataset.meta.sheet_bd_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="topbar-link"
+            >
+              BD Sheets <ExternalLink size={12} />
+            </a>
+          </div>
         </div>
       </header>
 

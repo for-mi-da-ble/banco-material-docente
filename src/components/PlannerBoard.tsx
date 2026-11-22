@@ -58,11 +58,11 @@ export default function PlannerBoard({
     return map;
   }, [dataset.materials]);
 
-  // Cursos disponibles en el ciclo activo
+  // Cursos disponibles en el ciclo activo (o todos los cursos unificados si selectedCiclo === "")
   const coursesInCiclo = useMemo(() => {
     const counts = new Map<string, number>();
     for (const m of dataset.materials) {
-      if (m.ciclo === selectedCiclo) {
+      if (!selectedCiclo || m.ciclo === selectedCiclo) {
         counts.set(m.curso, (counts.get(m.curso) || 0) + 1);
       }
     }
@@ -76,13 +76,13 @@ export default function PlannerBoard({
   const subjectsInCurso = useMemo(() => {
     const counts = new Map<string, number>();
     for (const m of dataset.materials) {
-      if (m.ciclo === selectedCiclo && m.curso === selectedCurso) {
+      if ((!selectedCiclo || m.ciclo === selectedCiclo) && m.curso === selectedCurso) {
         counts.set(m.asignatura, (counts.get(m.asignatura) || 0) + 1);
       }
     }
     const covMap = new Map<string, { cov: number; tot: number }>();
     for (const r of dataset.coverage) {
-      if (r.ciclo === selectedCiclo && r.curso === selectedCurso) {
+      if ((!selectedCiclo || r.ciclo === selectedCiclo) && r.curso === selectedCurso) {
         const cur = covMap.get(r.asig) || { cov: 0, tot: 0 };
         cur.cov += r.cov;
         cur.tot += r.tot;
@@ -98,11 +98,11 @@ export default function PlannerBoard({
       });
   }, [dataset.materials, dataset.coverage, selectedCiclo, selectedCurso]);
 
-  // Materiales de la combinación (Ciclo, Curso, Asignatura)
+  // Materiales de la combinación (Curso, Asignatura)
   const subjectMaterials = useMemo(
     () =>
       dataset.materials.filter(
-        (m) => m.ciclo === selectedCiclo && m.curso === selectedCurso && m.asignatura === selectedAsig,
+        (m) => (!selectedCiclo || m.ciclo === selectedCiclo) && m.curso === selectedCurso && m.asignatura === selectedAsig,
       ),
     [dataset.materials, selectedCiclo, selectedCurso, selectedAsig],
   );
@@ -185,7 +185,7 @@ export default function PlannerBoard({
   const activeDriveFolder = useMemo(() => {
     if (isTransversal) {
       return dataset.folders.find(
-        (f) => f.ciclo === selectedCiclo && f.ruta.toLowerCase().includes("transversal"),
+        (f) => (!selectedCiclo || f.ciclo === selectedCiclo) && f.ruta.toLowerCase().includes("transversal"),
       );
     }
     if (selectedUnit !== "Todas") {
@@ -204,7 +204,7 @@ export default function PlannerBoard({
         <div>
           <h1>Planificador Visual por Curso y Unidad</h1>
           <p>
-            Elige tu curso y asignatura para explorar guías, pruebas, presentaciones y rúbricas junto a los Objetivos de Aprendizaje MINEDUC oficiales.
+            Todo el banco unificado en una sola carpeta <strong>Material/</strong>: elige tu curso y asignatura para explorar recursos junto a los OA MINEDUC oficiales.
           </p>
         </div>
         {activeDriveFolder && (
@@ -219,11 +219,25 @@ export default function PlannerBoard({
         )}
       </div>
 
-      {/* Selector visual de 3 pasos */}
+      {/* Selector visual unificado */}
       <div className="selector-panel">
         <div>
-          <div className="step-label">1. Selecciona el Ciclo</div>
+          <div className="step-label">1. Filtrar por Ciclo (opcional)</div>
           <div className="cycle-pills">
+            <button
+              type="button"
+              className={`cycle-pill ${selectedCiclo === "" ? "active" : ""}`}
+              onClick={() => {
+                onSelectCiclo("");
+                setTipoFilter("");
+                setOaFilter("");
+              }}
+            >
+              <span>Todos los cursos</span>
+              <span className="tabular" style={{ opacity: 0.78, fontSize: 12 }}>
+                {dataset.materials.length.toLocaleString("es-CL")}
+              </span>
+            </button>
             {CICLO_ORDER.map((c) => (
               <button
                 key={c}

@@ -224,9 +224,13 @@ export function getAllowedSubjectsForCourse(curso: string): string[] {
 }
 
 export function getRootForCiclo(ciclo: string): { root: string; transversal: string } {
-  if (ciclo === "1° Ciclo") return { root: "Material-1Ciclo", transversal: "Transversal 1° Ciclo y Gestión" };
-  if (ciclo === "2° Ciclo") return { root: "Material-2Ciclo", transversal: "Transversal 2° Ciclo y Gestión" };
-  return { root: "Material-Media", transversal: "Transversal Media y Gestión" };
+  if (ciclo === "1° Ciclo") {
+    return { root: "Material", transversal: "Transversal y Gestión/Transversal 1° Ciclo y Gestión" };
+  }
+  if (ciclo === "2° Ciclo") {
+    return { root: "Material", transversal: "Transversal y Gestión/Transversal 2° Ciclo y Gestión" };
+  }
+  return { root: "Material", transversal: "Transversal y Gestión/Transversal Media y Gestión" };
 }
 
 export function normText(s: string): string {
