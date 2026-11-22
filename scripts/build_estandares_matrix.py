@@ -582,7 +582,7 @@ def build_excel(
                 wrap_text=True,
             )
             if c_idx == 5:
-                cell.fill = ok_fill if val == "Directo" else (sub_fill if "Tramo" in str(val) else warm_fill)
+                cell.fill = ok_fill if val == "Directo" else (sub_fill if "Progresión" in str(val) else adv_fill)
             elif c_idx == 9:
                 if "Expectativa" in str(val):
                     cell.fill = adv_fill
@@ -655,7 +655,7 @@ def build_excel(
                 wrap_text=True,
             )
             if c_idx == 6:
-                cell.fill = ok_fill if val == "Directo" else (sub_fill if "Tramo" in val else warm_fill)
+                cell.fill = ok_fill if val == "Directo" else (sub_fill if "Progresión" in str(val) else adv_fill)
             elif r_idx % 2 == 1:
                 cell.fill = warm_fill
     ws1.auto_filter.ref = f"A4:{get_column_letter(len(h1))}{len(unit_summary_rows) + 4}"

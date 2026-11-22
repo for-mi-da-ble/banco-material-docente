@@ -108,7 +108,7 @@ export interface CourseStandardLink {
   curso: string;
   asignatura: string;
   docId: string;
-  vinculo: "Directo" | "Progresión de Tramo" | "Progresión Base del Ciclo";
+  vinculo: "Directo" | "Progresión a Directo" | "Indirecto";
   notaVinculo: string;
   unidades: string[];
 }
@@ -122,7 +122,7 @@ export interface OaStandardLink {
 
 export interface UnitStandardLink {
   docId: string;
-  vinculo: "Directo" | "Progresión de Tramo" | "Progresión Base del Ciclo";
+  vinculo: "Directo" | "Progresión a Directo" | "Indirecto";
   notaVinculo: string;
   indicadoresUnidad: string[];
   oas: OaStandardLink[];

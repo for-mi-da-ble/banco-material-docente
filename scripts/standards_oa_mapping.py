@@ -4,9 +4,9 @@ Asociación curricular rigurosa entre los 10 documentos de Estándares de Aprend
 y los Objetivos de Aprendizaje (OA) por unidad de cada curso (1° Básico a 2° Medio).
 
 Cada curso-asignatura se vincula a su documento de estándares según:
-  - "Directo": curso evaluado por el documento (2°, 4°, 6°, 8° Básico y 2° Medio).
-  - "Progresión de Tramo": curso inmediatamente anterior del mismo tramo (1°, 3°, 5°, 7° Básico y 1° Medio).
-  - "Progresión Base del Ciclo": cursos iniciales incluidos explícitamente en la cobertura oficial
+  - "Directo": curso evaluado directamente por el documento (2°, 4°, 6°, 8° Básico y 2° Medio).
+  - "Progresión a Directo": curso inmediatamente anterior del mismo tramo (1°, 3°, 5°, 7° Básico y 1° Medio).
+  - "Indirecto": cursos iniciales incluidos explícitamente en la cobertura oficial
     del estándar (1°–2° Básico Matemática → 4° Matemática; 5°–6° Básico Historia → 8° Historia).
 """
 
@@ -14,31 +14,31 @@ from __future__ import annotations
 
 COURSE_DOC_LINKS = [
     # LECTURA / LENGUAJE Y COMUNICACIÓN / LENGUA Y LITERATURA
-    ("1° Básico", "Lenguaje y Comunicación", "2_Lectura", "Progresión de Tramo", "Tramo 1°–2° Básico (progresión hacia Estándar 2° Básico)"),
+    ("1° Básico", "Lenguaje y Comunicación", "2_Lectura", "Progresión a Directo", "Tramo 1°–2° Básico (progresión hacia Estándar 2° Básico)"),
     ("2° Básico", "Lenguaje y Comunicación", "2_Lectura", "Directo", "Curso evaluado por Estándares Lectura 2° Básico"),
-    ("3° Básico", "Lenguaje y Comunicación", "4_Lectura", "Progresión de Tramo", "Tramo 3°–4° Básico (progresión hacia Estándar 4° Básico)"),
+    ("3° Básico", "Lenguaje y Comunicación", "4_Lectura", "Progresión a Directo", "Tramo 3°–4° Básico (progresión hacia Estándar 4° Básico)"),
     ("4° Básico", "Lenguaje y Comunicación", "4_Lectura", "Directo", "Curso evaluado por Estándares Lectura 4° Básico"),
-    ("5° Básico", "Lenguaje y Comunicación", "6_Lectura", "Progresión de Tramo", "Tramo 5°–6° Básico (progresión hacia Estándar 6° Básico)"),
+    ("5° Básico", "Lenguaje y Comunicación", "6_Lectura", "Progresión a Directo", "Tramo 5°–6° Básico (progresión hacia Estándar 6° Básico)"),
     ("6° Básico", "Lenguaje y Comunicación", "6_Lectura", "Directo", "Curso evaluado por Estándares Lectura 6° Básico"),
-    ("7° Básico", "Lengua y Literatura", "8_Lectura", "Progresión de Tramo", "Tramo 7°–8° Básico (progresión hacia Estándar 8° Básico)"),
+    ("7° Básico", "Lengua y Literatura", "8_Lectura", "Progresión a Directo", "Tramo 7°–8° Básico (progresión hacia Estándar 8° Básico)"),
     ("8° Básico", "Lengua y Literatura", "8_Lectura", "Directo", "Curso evaluado por Estándares Lectura 8° Básico"),
-    ("1° Medio", "Lengua y Literatura", "II_Lectura", "Progresión de Tramo", "Tramo 1°–2° Medio (progresión hacia Estándar 2° Medio)"),
+    ("1° Medio", "Lengua y Literatura", "II_Lectura", "Progresión a Directo", "Tramo 1°–2° Medio (progresión hacia Estándar 2° Medio)"),
     ("2° Medio", "Lengua y Literatura", "II_Lectura", "Directo", "Curso evaluado por Estándares Lectura 2° Medio"),
     # MATEMÁTICA
-    ("1° Básico", "Matemática", "4_Matematica", "Progresión Base del Ciclo", "Cobertura oficial 1°–4° Básico (base hacia Estándar 4° Básico)"),
-    ("2° Básico", "Matemática", "4_Matematica", "Progresión Base del Ciclo", "Cobertura oficial 1°–4° Básico (base hacia Estándar 4° Básico)"),
-    ("3° Básico", "Matemática", "4_Matematica", "Progresión de Tramo", "Tramo 3°–4° Básico (progresión hacia Estándar 4° Básico)"),
+    ("1° Básico", "Matemática", "4_Matematica", "Indirecto", "Cobertura oficial 1°–4° Básico (base indirecta hacia Estándar 4° Básico)"),
+    ("2° Básico", "Matemática", "4_Matematica", "Indirecto", "Cobertura oficial 1°–4° Básico (base indirecta hacia Estándar 4° Básico)"),
+    ("3° Básico", "Matemática", "4_Matematica", "Progresión a Directo", "Tramo 3°–4° Básico (progresión hacia Estándar 4° Básico)"),
     ("4° Básico", "Matemática", "4_Matematica", "Directo", "Curso evaluado por Estándares Matemática 4° Básico"),
-    ("5° Básico", "Matemática", "6_Matematica", "Progresión de Tramo", "Tramo 5°–6° Básico (progresión hacia Estándar 6° Básico)"),
+    ("5° Básico", "Matemática", "6_Matematica", "Progresión a Directo", "Tramo 5°–6° Básico (progresión hacia Estándar 6° Básico)"),
     ("6° Básico", "Matemática", "6_Matematica", "Directo", "Curso evaluado por Estándares Matemática 6° Básico"),
-    ("7° Básico", "Matemática", "8_Matematica", "Progresión de Tramo", "Tramo 7°–8° Básico (progresión hacia Estándar 8° Básico)"),
+    ("7° Básico", "Matemática", "8_Matematica", "Progresión a Directo", "Tramo 7°–8° Básico (progresión hacia Estándar 8° Básico)"),
     ("8° Básico", "Matemática", "8_Matematica", "Directo", "Curso evaluado por Estándares Matemática 8° Básico"),
-    ("1° Medio", "Matemática", "II_Matematica", "Progresión de Tramo", "Tramo 1°–2° Medio (progresión hacia Estándar 2° Medio)"),
+    ("1° Medio", "Matemática", "II_Matematica", "Progresión a Directo", "Tramo 1°–2° Medio (progresión hacia Estándar 2° Medio)"),
     ("2° Medio", "Matemática", "II_Matematica", "Directo", "Curso evaluado por Estándares Matemática 2° Medio"),
     # HISTORIA, GEOGRAFÍA Y CIENCIAS SOCIALES
-    ("5° Básico", "Historia, Geografía y Ciencias Sociales", "8_Historia", "Progresión Base del Ciclo", "Cobertura oficial 5°–8° Básico (Historia de Chile/América, Geografía y DD.HH.)"),
-    ("6° Básico", "Historia, Geografía y Ciencias Sociales", "8_Historia", "Progresión Base del Ciclo", "Cobertura oficial 5°–8° Básico (Chile Republicano, Geografía y Democracia)"),
-    ("7° Básico", "Historia, Geografía y Ciencias Sociales", "8_Historia", "Progresión de Tramo", "Tramo 7°–8° Básico (Prehistoria, Antigüedad, Edad Media y América Precolombina)"),
+    ("5° Básico", "Historia, Geografía y Ciencias Sociales", "8_Historia", "Indirecto", "Cobertura oficial 5°–8° Básico (Historia de Chile/América, Geografía y DD.HH.)"),
+    ("6° Básico", "Historia, Geografía y Ciencias Sociales", "8_Historia", "Indirecto", "Cobertura oficial 5°–8° Básico (Chile Republicano, Geografía y Democracia)"),
+    ("7° Básico", "Historia, Geografía y Ciencias Sociales", "8_Historia", "Progresión a Directo", "Tramo 7°–8° Básico (Prehistoria, Antigüedad, Edad Media y América Precolombina)"),
     ("8° Básico", "Historia, Geografía y Ciencias Sociales", "8_Historia", "Directo", "Curso evaluado por Estándares Historia, Geografía y Cs. Sociales 8° Básico"),
 ]
 

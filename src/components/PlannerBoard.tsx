@@ -517,9 +517,9 @@ export default function PlannerBoard({
                   className={`badge ${
                     activeCourseStdLink.vinculo === "Directo"
                       ? "badge-ok"
-                      : activeCourseStdLink.vinculo.includes("Tramo")
+                      : activeCourseStdLink.vinculo.includes("Progresión")
                       ? "badge-navy"
-                      : "badge-warn"
+                      : "badge-adv"
                   }`}
                 >
                   {activeCourseStdLink.vinculo}

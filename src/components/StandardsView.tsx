@@ -41,8 +41,8 @@ type ViewMode = "annualByStd" | "byUnit" | "byDoc";
 
 function vinculoBadgeClass(vinculo: string): string {
   if (vinculo === "Directo") return "badge badge-ok";
-  if (vinculo.includes("Tramo")) return "badge badge-navy";
-  return "badge badge-warn";
+  if (vinculo.includes("Progresión")) return "badge badge-navy";
+  return "badge badge-adv";
 }
 
 function oaNumericKey(oa: string): number {
@@ -666,7 +666,7 @@ export default function StandardsView({
                   >
                     <span className="course-tile-name">{curso}</span>
                     <span className="course-tile-meta">
-                      {hasDirect ? "Evaluado SIMCE" : "Progresión"}
+                      {hasDirect ? "Directo" : "Progresión a Directo"}
                     </span>
                   </button>
                 );
@@ -685,9 +685,7 @@ export default function StandardsView({
                   onClick={() => handleSelectAsig(cl.asignatura)}
                 >
                   <span>{cl.asignatura}</span>
-                  <span className="subject-chip-count">
-                    {cl.vinculo === "Directo" ? "Directo" : "Progresión"}
-                  </span>
+                  <span className="subject-chip-count">{cl.vinculo}</span>
                 </button>
               ))}
             </div>
@@ -1433,7 +1431,7 @@ export default function StandardsView({
                               <button
                                 key={`${u.curso}-${u.asig}-${u.oa}`}
                                 type="button"
-                                className={`badge ${u.vinculo === "Directo" ? "badge-ok" : "badge-navy"}`}
+                                className={vinculoBadgeClass(u.vinculo)}
                                 style={{ cursor: "pointer" }}
                                 onClick={() => {
                                   setSelCiclo(u.ciclo);
